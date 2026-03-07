@@ -10,28 +10,38 @@ unifiedui-sdk/
 │       ├── py.typed               # PEP 561 type marker
 │       ├── core/                  # Shared interfaces, base classes, utilities
 │       │   ├── __init__.py        # Re-exports from utils.py
-│       │   └── utils.py           # Shared helpers (generate_id, utc_now, safe_str, str_uuid)
+│       │   ├── utils.py           # Shared helpers (generate_id, utc_now, safe_str, str_uuid)
+│       │   └── README.md
 │       ├── tracing/               # Tracing objects, LangChain/LangGraph sniffing
-│       │   ├── __init__.py        # Re-exports models + tracer
+│       │   ├── __init__.py        # Re-exports models + tracers
 │       │   ├── models.py          # Pydantic trace data models (Trace, TraceNode, etc.)
-│       │   └── langchain.py       # LangChain/LangGraph callback tracer
-│       ├── streaming/             # Standardized streaming responses
-│       │   └── __init__.py
-│       └── agents/                # ReACT Agent, agent engine (LangChain/LangGraph)
-│           └── __init__.py
+│       │   ├── base.py            # BaseTracer — shared callback logic & extension hooks
+│       │   ├── langchain.py       # UnifiedUILangchainTracer (thin subclass of BaseTracer)
+│       │   ├── langgraph.py       # UnifiedUILanggraphTracer (filters __start__/__end__)
+│       │   └── README.md
+│       ├── streaming/             # Standardized streaming responses (planned)
+│       │   ├── __init__.py
+│       │   └── README.md
+│       └── agents/                # ReACT Agent, agent engine (planned)
+│           ├── __init__.py
+│           └── README.md
 ├── tests/                         # Test suite (mirrors src structure)
 │   ├── conftest.py
 │   ├── test_version.py
+│   ├── README.md
 │   ├── core/
 │   │   └── test_utils.py
 │   ├── tracing/
 │   │   ├── test_models.py
-│   │   └── test_langchain.py
+│   │   ├── test_base.py
+│   │   ├── test_langchain.py
+│   │   └── test_langgraph.py
 │   ├── streaming/
 │   └── agents/
 ├── docs/                          # Extended documentation
 ├── notebooks/                     # Jupyter notebooks for experiments
 ├── pocs/                          # Proof-of-concept scripts
+│   └── tracings/                  # Tracing POCs (002, 003)
 └── .github/
     ├── workflows/                 # CI pipelines
     └── instructions/              # Copilot instruction files
@@ -51,7 +61,7 @@ unifiedui-sdk/
 Shared abstractions that other modules depend on. Contains base classes, protocols, type aliases, and utility functions in `utils.py` (e.g. `generate_id`, `utc_now`, `safe_str`, `str_uuid`). **No external dependencies** beyond the standard library.
 
 ### `tracing`
-Provides standardized tracing objects for unified-ui. Includes callback handlers for LangChain and LangGraph that capture execution traces and forward them to the platform service.
+Provides standardized tracing objects for unified-ui. Contains a `BaseTracer` with shared callback logic and extension hooks (`_resolve_name`, `_should_trace_node`), plus thin framework-specific subclasses: `UnifiedUILangchainTracer` for LangChain and `UnifiedUILanggraphTracer` for LangGraph (which filters internal `__start__`/`__end__` nodes). Pydantic models mirror the Go agent-service trace structures.
 
 ### `streaming`
 Implements standardized streaming response protocols for unified-ui. Ensures consistent streaming behavior across different agent backends (LangChain, LangGraph, custom agents).
