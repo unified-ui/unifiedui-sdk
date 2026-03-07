@@ -129,11 +129,9 @@ ignore_missing_imports = true
 |----------|---------|-----|
 | `ci-tests-and-lint.yml` | push/PR to `main` | Tests, ruff lint, ruff format, mypy, coverage |
 | `ci-pr-branch-check.yml` | PR open/sync | Branch naming convention check |
-| `codeql.yml` | push/PR/weekly | Security scanning (CodeQL) |
 
 ## Security
 
-- **CodeQL** scans for vulnerabilities on every push and weekly
 - **Ruff** includes security rules via flake8-bugbear
 - **pre-commit** hooks prevent accidental debug statements and large files
 
