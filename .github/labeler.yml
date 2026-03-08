@@ -1,0 +1,52 @@
+# Labels PRs based on files changed
+
+# SDK source
+sdk:
+  - changed-files:
+    - any-glob-to-any-file: 'src/unifiedui_sdk/**/*'
+
+# Agents module
+agents:
+  - changed-files:
+    - any-glob-to-any-file: 'src/unifiedui_sdk/agents/**/*'
+
+# Streaming module
+streaming:
+  - changed-files:
+    - any-glob-to-any-file: 'src/unifiedui_sdk/streaming/**/*'
+
+# Tracing module
+tracing:
+  - changed-files:
+    - any-glob-to-any-file: 'src/unifiedui_sdk/tracing/**/*'
+
+# Tools module
+tools:
+  - changed-files:
+    - any-glob-to-any-file: 'src/unifiedui_sdk/tools/**/*'
+
+# Core module
+core:
+  - changed-files:
+    - any-glob-to-any-file: 'src/unifiedui_sdk/core/**/*'
+
+# Tests
+tests:
+  - changed-files:
+    - any-glob-to-any-file: 'tests/**/*'
+
+# Documentation
+documentation:
+  - changed-files:
+    - any-glob-to-any-file: '**/*.md'
+
+# CI/CD
+ci:
+  - changed-files:
+    - any-glob-to-any-file: '.github/**/*'
+
+# Dependencies
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file: 'pyproject.toml'
+    - any-glob-to-any-file: 'uv.lock'
