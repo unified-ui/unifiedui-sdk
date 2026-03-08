@@ -35,9 +35,7 @@ class TestGraphAuthProvider:
 
     def test_init_with_msal_credentials(self) -> None:
         """Initialize auth provider with MSAL credentials."""
-        with patch(
-            "unifiedui_sdk.tools.m365.core.auth.ConfidentialClientApplication"
-        ) as mock_app:
+        with patch("unifiedui_sdk.tools.m365.core.auth.ConfidentialClientApplication") as mock_app:
             mock_app.return_value = MagicMock()
 
             auth = GraphAuthProvider(
@@ -65,9 +63,7 @@ class TestGraphAuthProvider:
 
     def test_get_headers_with_msal(self) -> None:
         """Get headers using MSAL flow."""
-        with patch(
-            "unifiedui_sdk.tools.m365.core.auth.ConfidentialClientApplication"
-        ) as mock_cca:
+        with patch("unifiedui_sdk.tools.m365.core.auth.ConfidentialClientApplication") as mock_cca:
             mock_app = MagicMock()
             mock_app.acquire_token_for_client.return_value = {
                 "access_token": "test-token",
@@ -95,9 +91,7 @@ class TestGraphAuthProvider:
 
     def test_get_headers_msal_failure(self) -> None:
         """Raise error when MSAL token acquisition fails."""
-        with patch(
-            "unifiedui_sdk.tools.m365.core.auth.ConfidentialClientApplication"
-        ) as mock_cca:
+        with patch("unifiedui_sdk.tools.m365.core.auth.ConfidentialClientApplication") as mock_cca:
             mock_app = MagicMock()
             mock_app.acquire_token_for_client.return_value = {
                 "error": "invalid_client",

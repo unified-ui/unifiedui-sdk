@@ -44,33 +44,25 @@ class TestOutlookAPIClient:
             ],
         )
 
-    def test_enabled_capabilities_default(
-        self, full_client: OutlookAPIClient
-    ) -> None:
+    def test_enabled_capabilities_default(self, full_client: OutlookAPIClient) -> None:
         """All capabilities enabled by default."""
         caps = full_client.enabled_capabilities
         assert OutlookCapability.MAIL_READ in caps
         assert OutlookCapability.MAIL_SEND in caps
         assert OutlookCapability.CALENDAR_WRITE in caps
 
-    def test_enabled_capabilities_restricted(
-        self, readonly_client: OutlookAPIClient
-    ) -> None:
+    def test_enabled_capabilities_restricted(self, readonly_client: OutlookAPIClient) -> None:
         """Only specified capabilities enabled."""
         caps = readonly_client.enabled_capabilities
         assert OutlookCapability.MAIL_READ in caps
         assert OutlookCapability.MAIL_SEND not in caps
 
-    def test_capability_enforcement_blocks_send(
-        self, readonly_client: OutlookAPIClient
-    ) -> None:
+    def test_capability_enforcement_blocks_send(self, readonly_client: OutlookAPIClient) -> None:
         """Capability enforcement blocks write operations."""
         with pytest.raises(OutlookCapabilityError):
             readonly_client.messages.send(
                 "user-id",
-                SendMessage(
-                    to=["test@example.com"], subject="Test", body="Body"
-                ),
+                SendMessage(to=["test@example.com"], subject="Test", body="Body"),
             )
 
     def test_services_exist(self, full_client: OutlookAPIClient) -> None:
@@ -96,9 +88,7 @@ class TestOutlookModels:
 
     def test_send_message_required_fields(self) -> None:
         """SendMessage requires to, subject, body."""
-        msg = SendMessage(
-            to=["test@example.com"], subject="Hi", body="Hello world"
-        )
+        msg = SendMessage(to=["test@example.com"], subject="Hi", body="Hello world")
 
         assert msg.to == ["test@example.com"]
         assert msg.subject == "Hi"
@@ -106,9 +96,7 @@ class TestOutlookModels:
 
     def test_send_message_defaults(self) -> None:
         """SendMessage with default values."""
-        msg = SendMessage(
-            to=["test@example.com"], subject="Hi", body="Hello"
-        )
+        msg = SendMessage(to=["test@example.com"], subject="Hi", body="Hello")
 
         assert msg.cc is None
         assert msg.bcc is None

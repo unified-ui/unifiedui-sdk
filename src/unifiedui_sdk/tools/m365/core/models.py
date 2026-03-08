@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass(kw_only=True)
@@ -18,7 +19,7 @@ class PagedResult:
             ``@odata.count``; ``None`` otherwise).
     """
 
-    value: list[dict] = field(default_factory=list)
+    value: list[dict[str, Any]] = field(default_factory=list)
     top: int = 0
     skip: int = 0
     has_more: bool = False
@@ -26,7 +27,7 @@ class PagedResult:
 
 
 def build_paged_result(
-    data: dict,
+    data: dict[str, Any],
     top: int,
     skip: int,
 ) -> PagedResult:

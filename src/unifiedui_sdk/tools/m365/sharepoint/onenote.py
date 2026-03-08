@@ -1,5 +1,7 @@
 """OneNote service for SharePoint site notebooks."""
 
+from typing import Any
+
 from unifiedui_sdk.tools.m365.core.http import GraphRequestHandler
 from unifiedui_sdk.tools.m365.core.models import PagedResult, build_paged_result
 from unifiedui_sdk.tools.m365.sharepoint.capabilities import (
@@ -33,7 +35,7 @@ class OneNoteService:
         select_fields: list[str] | None = None,
     ) -> PagedResult:
         """List all notebooks on a site."""
-        params: dict = {}
+        params: dict[str, Any] = {}
         if select_fields:
             params["$select"] = ",".join(select_fields)
 
@@ -50,7 +52,7 @@ class OneNoteService:
         site_id: str,
         notebook_id: str,
         select_fields: list[str] | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get a specific notebook."""
         params = None
         if select_fields:
@@ -70,7 +72,7 @@ class OneNoteService:
         select_fields: list[str] | None = None,
     ) -> PagedResult:
         """List sections in a notebook."""
-        params: dict = {}
+        params: dict[str, Any] = {}
         if select_fields:
             params["$select"] = ",".join(select_fields)
 
@@ -91,7 +93,7 @@ class OneNoteService:
         skip: int = 0,
     ) -> PagedResult:
         """List pages in a section."""
-        params: dict = {"$top": top}
+        params: dict[str, Any] = {"$top": top}
         if skip:
             params["$skip"] = skip
         if select_fields:
@@ -111,9 +113,9 @@ class OneNoteService:
         section_id: str,
         select_fields: list[str] | None = None,
         top: int = 100,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """List all pages in a section, auto-following pagination."""
-        params: dict = {"$top": top}
+        params: dict[str, Any] = {"$top": top}
         if select_fields:
             params["$select"] = ",".join(select_fields)
 
@@ -123,7 +125,7 @@ class OneNoteService:
             params=params,
         )
 
-        items = data.get("value", [])
+        items: list[dict[str, Any]] = data.get("value", [])
         while "@odata.nextLink" in data:
             data = self._http.request_url("GET", data["@odata.nextLink"])
             items.extend(data.get("value", []))
@@ -133,9 +135,7 @@ class OneNoteService:
     @requires_capability(SharePointCapability.ONENOTE_READ)
     def get_page_content(self, site_id: str, page_id: str) -> str:
         """Get OneNote page content as raw HTML."""
-        raw = self._http.request_raw(
-            "GET", f"/sites/{site_id}/onenote/pages/{page_id}/content"
-        )
+        raw = self._http.request_raw("GET", f"/sites/{site_id}/onenote/pages/{page_id}/content")
         return raw.decode("utf-8", errors="replace")
 
     @requires_capability(SharePointCapability.ONENOTE_READ)

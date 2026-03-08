@@ -110,9 +110,7 @@ class TestBatchSearchQuery:
         """Create batch with multiple requests."""
         batch = BatchSearchQuery(
             requests=[
-                SearchRequest(
-                    query="query1", entity_types=[EntityType.MESSAGE]
-                ),
+                SearchRequest(query="query1", entity_types=[EntityType.MESSAGE]),
                 SearchRequest(query="query2", entity_types=[EntityType.EVENT]),
             ]
         )

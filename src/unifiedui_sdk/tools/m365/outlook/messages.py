@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from unifiedui_sdk.tools.m365.core.http import GraphRequestHandler
+from typing import TYPE_CHECKING, Any
+
 from unifiedui_sdk.tools.m365.core.models import PagedResult, build_paged_result
 from unifiedui_sdk.tools.m365.outlook.capabilities import (
     OutlookCapability,
@@ -19,6 +20,11 @@ from unifiedui_sdk.tools.m365.outlook.models import (
     SendMessage,
 )
 
+if TYPE_CHECKING:
+    import builtins
+
+    from unifiedui_sdk.tools.m365.core.http import GraphRequestHandler
+
 
 class _MessageOperations:
     """Core message operations (shared by user and ``/me``)."""
@@ -32,36 +38,27 @@ class _MessageOperations:
         self._capabilities = capabilities
 
     @requires_capability(OutlookCapability.MAIL_SEND)
-    def send(self, base: str, message: SendMessage) -> dict:
+    def send(self, base: str, message: SendMessage) -> dict[str, Any]:
         """Send an e-mail."""
-        payload: dict = {
+        payload: dict[str, Any] = {
             "subject": message.subject,
             "body": {
                 "contentType": message.body_type,
                 "content": message.body,
             },
-            "toRecipients": [
-                format_recipient(recipient) for recipient in message.to
-            ],
+            "toRecipients": [format_recipient(recipient) for recipient in message.to],
         }
 
         if message.cc:
-            payload["ccRecipients"] = [
-                format_recipient(recipient) for recipient in message.cc
-            ]
+            payload["ccRecipients"] = [format_recipient(recipient) for recipient in message.cc]
         if message.bcc:
-            payload["bccRecipients"] = [
-                format_recipient(recipient) for recipient in message.bcc
-            ]
+            payload["bccRecipients"] = [format_recipient(recipient) for recipient in message.bcc]
         if message.importance != "normal":
             payload["importance"] = message.importance
         if message.attachments:
-            payload["attachments"] = [
-                format_attachment(attachment)
-                for attachment in message.attachments
-            ]
+            payload["attachments"] = [format_attachment(attachment) for attachment in message.attachments]
 
-        body: dict = {
+        body: dict[str, Any] = {
             "message": payload,
             "saveToSentItems": message.save_to_sent,
         }
@@ -74,7 +71,7 @@ class _MessageOperations:
         base: str,
         message_id: str,
         reply: ReplyMessage,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Reply (or reply-all) to a message."""
         action = "replyAll" if reply.reply_all else "reply"
         return self._http.request(
@@ -92,7 +89,7 @@ class _MessageOperations:
         """List messages from a folder."""
         current = query or ListMessagesQuery()
 
-        params: dict = {
+        params: dict[str, Any] = {
             "$top": current.top,
             "$skip": current.skip,
             "$orderby": current.order_by,
@@ -116,8 +113,8 @@ class _MessageOperations:
         self,
         base: str,
         message_id: str,
-        select_fields: list[str] | None = None,
-    ) -> dict:
+        select_fields: builtins.list[str] | None = None,
+    ) -> dict[str, Any]:
         """Get a single message by ID."""
         params = None
         if select_fields:
@@ -136,7 +133,7 @@ class _MessageOperations:
         query: SearchMessagesQuery,
     ) -> PagedResult:
         """Search messages using KQL syntax."""
-        params: dict = {
+        params: dict[str, Any] = {
             "$search": f'"{query.query}"',
             "$top": query.top,
         }
@@ -160,7 +157,7 @@ class _MessageOperations:
         base: str,
         message_id: str,
         destination_folder_id: str,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Move a message to another folder."""
         return self._http.request(
             "POST",
@@ -169,7 +166,7 @@ class _MessageOperations:
         )
 
     @requires_capability(OutlookCapability.MAIL_MANAGE)
-    def delete(self, base: str, message_id: str) -> dict:
+    def delete(self, base: str, message_id: str) -> dict[str, Any]:
         """Delete a message."""
         return self._http.request("DELETE", f"{base}/messages/{message_id}")
 
@@ -181,11 +178,11 @@ class _MeMessageService:
         self._ops = ops
         self._capabilities = ops._capabilities
 
-    def send(self, message: SendMessage) -> dict:
+    def send(self, message: SendMessage) -> dict[str, Any]:
         """Send an e-mail as the current user."""
         return self._ops.send("/me", message)
 
-    def reply(self, message_id: str, reply: ReplyMessage) -> dict:
+    def reply(self, message_id: str, reply: ReplyMessage) -> dict[str, Any]:
         """Reply to a message as the current user."""
         return self._ops.reply("/me", message_id, reply)
 
@@ -196,8 +193,8 @@ class _MeMessageService:
     def get(
         self,
         message_id: str,
-        select_fields: list[str] | None = None,
-    ) -> dict:
+        select_fields: builtins.list[str] | None = None,
+    ) -> dict[str, Any]:
         """Get a message by ID for the current user."""
         return self._ops.get("/me", message_id, select_fields)
 
@@ -209,11 +206,11 @@ class _MeMessageService:
         """List mail folders for the current user."""
         return self._ops.list_folders("/me")
 
-    def move(self, message_id: str, destination_folder_id: str) -> dict:
+    def move(self, message_id: str, destination_folder_id: str) -> dict[str, Any]:
         """Move a message for the current user."""
         return self._ops.move("/me", message_id, destination_folder_id)
 
-    def delete(self, message_id: str) -> dict:
+    def delete(self, message_id: str) -> dict[str, Any]:
         """Delete a message for the current user."""
         return self._ops.delete("/me", message_id)
 
@@ -236,7 +233,7 @@ class MessageService:
         self._capabilities = capabilities
         self.me = _MeMessageService(self._ops)
 
-    def send(self, user: str, message: SendMessage) -> dict:
+    def send(self, user: str, message: SendMessage) -> dict[str, Any]:
         """Send an e-mail for a specific user."""
         return self._ops.send(f"/users/{user}", message)
 
@@ -245,7 +242,7 @@ class MessageService:
         user: str,
         message_id: str,
         reply: ReplyMessage,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Reply to a message for a specific user."""
         return self._ops.reply(f"/users/{user}", message_id, reply)
 
@@ -261,8 +258,8 @@ class MessageService:
         self,
         user: str,
         message_id: str,
-        select_fields: list[str] | None = None,
-    ) -> dict:
+        select_fields: builtins.list[str] | None = None,
+    ) -> dict[str, Any]:
         """Get a message by ID for a specific user."""
         return self._ops.get(f"/users/{user}", message_id, select_fields)
 
@@ -279,13 +276,11 @@ class MessageService:
         user: str,
         message_id: str,
         destination_folder_id: str,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Move a message for a specific user."""
-        return self._ops.move(
-            f"/users/{user}", message_id, destination_folder_id
-        )
+        return self._ops.move(f"/users/{user}", message_id, destination_folder_id)
 
-    def delete(self, user: str, message_id: str) -> dict:
+    def delete(self, user: str, message_id: str) -> dict[str, Any]:
         """Delete a message for a specific user."""
         return self._ops.delete(f"/users/{user}", message_id)
 

@@ -1,7 +1,5 @@
 """Tests for M365 core models."""
 
-import pytest
-
 from unifiedui_sdk.tools.m365.core.models import PagedResult, build_paged_result
 
 

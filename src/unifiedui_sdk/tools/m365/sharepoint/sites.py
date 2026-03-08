@@ -1,5 +1,7 @@
 """Site service for SharePoint API operations."""
 
+from typing import Any
+
 from unifiedui_sdk.tools.m365.core.http import GraphRequestHandler
 from unifiedui_sdk.tools.m365.core.models import PagedResult, build_paged_result
 from unifiedui_sdk.tools.m365.sharepoint.capabilities import (
@@ -31,7 +33,7 @@ class SiteService:
     def get_root(
         self,
         select_fields: list[str] | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get the organisation root site."""
         params = None
         if select_fields:
@@ -44,7 +46,7 @@ class SiteService:
         self,
         site_id: str,
         select_fields: list[str] | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get a site by ID."""
         params = None
         if select_fields:
@@ -57,16 +59,14 @@ class SiteService:
         self,
         site_url: str,
         select_fields: list[str] | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get a site by its full URL."""
         host, path = parse_site_url(site_url)
         params = None
         if select_fields:
             params = {"$select": ",".join(select_fields)}
 
-        return self._http.request(
-            "GET", f"/sites/{host}:/{path}", params=params
-        )
+        return self._http.request("GET", f"/sites/{host}:/{path}", params=params)
 
     @requires_capability(SharePointCapability.SITES_READ)
     def list_subsites(
@@ -75,13 +75,11 @@ class SiteService:
         select_fields: list[str] | None = None,
     ) -> PagedResult:
         """List sub-sites of a site."""
-        params: dict = {}
+        params: dict[str, Any] = {}
         if select_fields:
             params["$select"] = ",".join(select_fields)
 
-        data = self._http.request(
-            "GET", f"/sites/{site_id}/sites", params=params or None
-        )
+        data = self._http.request("GET", f"/sites/{site_id}/sites", params=params or None)
         return build_paged_result(data, top=0, skip=0)
 
     @requires_capability(SharePointCapability.SITES_READ)
@@ -92,7 +90,7 @@ class SiteService:
         """Search for sites by keyword."""
         current = query or SiteSearchQuery()
 
-        params: dict = {"$top": current.top}
+        params: dict[str, Any] = {"$top": current.top}
         if current.skip:
             params["$skip"] = current.skip
         if current.keyword:
@@ -107,11 +105,11 @@ class SiteService:
     def search_all(
         self,
         query: SiteSearchQuery | None = None,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Search for sites, auto-following pagination."""
         current = query or SiteSearchQuery()
 
-        params: dict = {"$top": current.top}
+        params: dict[str, Any] = {"$top": current.top}
         if current.keyword:
             params["search"] = current.keyword
         if current.select_fields:
@@ -119,7 +117,7 @@ class SiteService:
 
         data = self._http.request("GET", "/sites", params=params)
 
-        items = data.get("value", [])
+        items: list[dict[str, Any]] = data.get("value", [])
         while "@odata.nextLink" in data:
             data = self._http.request_url("GET", data["@odata.nextLink"])
             items.extend(data.get("value", []))

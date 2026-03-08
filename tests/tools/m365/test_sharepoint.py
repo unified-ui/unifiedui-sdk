@@ -48,18 +48,14 @@ class TestSharePointAPIClient:
             ],
         )
 
-    def test_enabled_capabilities_default(
-        self, full_client: SharePointAPIClient
-    ) -> None:
+    def test_enabled_capabilities_default(self, full_client: SharePointAPIClient) -> None:
         """All capabilities enabled by default."""
         caps = full_client.enabled_capabilities
         assert SharePointCapability.SITES_READ in caps
         assert SharePointCapability.DRIVES_WRITE in caps
         assert SharePointCapability.LISTS_WRITE in caps
 
-    def test_enabled_capabilities_restricted(
-        self, readonly_client: SharePointAPIClient
-    ) -> None:
+    def test_enabled_capabilities_restricted(self, readonly_client: SharePointAPIClient) -> None:
         """Only specified capabilities enabled."""
         caps = readonly_client.enabled_capabilities
         assert SharePointCapability.SITES_READ in caps
@@ -74,9 +70,7 @@ class TestSharePointAPIClient:
         assert hasattr(full_client, "onenote")
         assert hasattr(full_client, "search")
 
-    def test_capability_enforcement(
-        self, readonly_client: SharePointAPIClient
-    ) -> None:
+    def test_capability_enforcement(self, readonly_client: SharePointAPIClient) -> None:
         """Capability enforcement blocks write operations."""
         with pytest.raises(SharePointCapabilityError):
             readonly_client.drives.upload(

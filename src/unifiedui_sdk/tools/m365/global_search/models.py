@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 
 
-class EntityType(str, Enum):
+class EntityType(StrEnum):
     """Microsoft Search entity types."""
 
     DRIVE_ITEM = "driveItem"
@@ -50,9 +50,7 @@ class SearchRequest:
     """A single search request inside ``POST /search/query``."""
 
     query: str = ""
-    entity_types: list[EntityType | str] = field(
-        default_factory=lambda: list(ALL_CONTENT_ENTITIES)
-    )
+    entity_types: list[EntityType | str] = field(default_factory=lambda: list(ALL_CONTENT_ENTITIES))
     top: int = 25
     skip: int = 0
     select_fields: list[str] | None = None

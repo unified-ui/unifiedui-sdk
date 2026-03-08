@@ -2,18 +2,21 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from typing import TYPE_CHECKING, Any
 
-from unifiedui_sdk.tools.m365.outlook.models import (
-    CreateEvent,
-    EventAttendee,
-    FileAttachment,
-    Recipient,
-    UpdateEvent,
-)
+if TYPE_CHECKING:
+    from datetime import datetime
+
+    from unifiedui_sdk.tools.m365.outlook.models import (
+        CreateEvent,
+        EventAttendee,
+        FileAttachment,
+        Recipient,
+        UpdateEvent,
+    )
 
 
-def format_datetime(dt: datetime, timezone: str) -> dict:
+def format_datetime(dt: datetime, timezone: str) -> dict[str, Any]:
     """Format a datetime for the Graph API."""
     return {
         "dateTime": dt.strftime("%Y-%m-%dT%H:%M:%S"),
@@ -21,17 +24,17 @@ def format_datetime(dt: datetime, timezone: str) -> dict:
     }
 
 
-def format_recipient(recipient: str | Recipient) -> dict:
+def format_recipient(recipient: str | Recipient) -> dict[str, Any]:
     """Convert a recipient to Graph API format."""
     if isinstance(recipient, str):
         return {"emailAddress": {"address": recipient}}
-    result: dict = {"emailAddress": {"address": recipient.email}}
+    result: dict[str, Any] = {"emailAddress": {"address": recipient.email}}
     if recipient.name:
         result["emailAddress"]["name"] = recipient.name
     return result
 
 
-def format_attachment(attachment: FileAttachment) -> dict:
+def format_attachment(attachment: FileAttachment) -> dict[str, Any]:
     """Convert an attachment to Graph API format."""
     return {
         "@odata.type": "#microsoft.graph.fileAttachment",
@@ -41,17 +44,17 @@ def format_attachment(attachment: FileAttachment) -> dict:
     }
 
 
-def format_attendee(attendee: EventAttendee) -> dict:
+def format_attendee(attendee: EventAttendee) -> dict[str, Any]:
     """Convert an attendee to Graph API format."""
-    address: dict = {"address": attendee.email}
+    address: dict[str, Any] = {"address": attendee.email}
     if attendee.name:
         address["name"] = attendee.name
     return {"emailAddress": address, "type": attendee.type}
 
 
-def build_event_body(event: CreateEvent) -> dict:
+def build_event_body(event: CreateEvent) -> dict[str, Any]:
     """Build JSON payload for event creation."""
-    body: dict = {
+    body: dict[str, Any] = {
         "subject": event.subject,
         "start": format_datetime(event.start, event.timezone),
         "end": format_datetime(event.end, event.timezone),
@@ -65,9 +68,7 @@ def build_event_body(event: CreateEvent) -> dict:
             "content": event.body,
         }
     if event.attendees:
-        body["attendees"] = [
-            format_attendee(attendee) for attendee in event.attendees
-        ]
+        body["attendees"] = [format_attendee(attendee) for attendee in event.attendees]
     if event.location:
         body["location"] = {"displayName": event.location.display_name}
     if event.recurrence:
@@ -76,9 +77,9 @@ def build_event_body(event: CreateEvent) -> dict:
     return body
 
 
-def build_update_body(event: UpdateEvent) -> dict:
+def build_update_body(event: UpdateEvent) -> dict[str, Any]:
     """Build JSON payload for partial event update."""
-    body: dict = {}
+    body: dict[str, Any] = {}
 
     if event.subject is not None:
         body["subject"] = event.subject
@@ -92,9 +93,7 @@ def build_update_body(event: UpdateEvent) -> dict:
             "content": event.body,
         }
     if event.attendees is not None:
-        body["attendees"] = [
-            format_attendee(attendee) for attendee in event.attendees
-        ]
+        body["attendees"] = [format_attendee(attendee) for attendee in event.attendees]
     if event.location is not None:
         body["location"] = {"displayName": event.location.display_name}
     if event.is_online is not None:

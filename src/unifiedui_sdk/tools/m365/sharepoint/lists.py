@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from unifiedui_sdk.tools.m365.core.http import GraphRequestHandler
+from typing import TYPE_CHECKING, Any
+
 from unifiedui_sdk.tools.m365.core.models import PagedResult, build_paged_result
 from unifiedui_sdk.tools.m365.sharepoint.capabilities import (
     SharePointCapability,
@@ -13,6 +14,11 @@ from unifiedui_sdk.tools.m365.sharepoint.models import (
     ListItemsQuery,
     UpdateListItem,
 )
+
+if TYPE_CHECKING:
+    import builtins
+
+    from unifiedui_sdk.tools.m365.core.http import GraphRequestHandler
 
 
 class ListService:
@@ -43,9 +49,7 @@ class ListService:
         if select_fields:
             params = {"$select": ",".join(select_fields)}
 
-        data = self._http.request(
-            "GET", f"/sites/{site_id}/lists", params=params
-        )
+        data = self._http.request("GET", f"/sites/{site_id}/lists", params=params)
         return build_paged_result(data, top=0, skip=0)
 
     @requires_capability(SharePointCapability.LISTS_READ)
@@ -53,23 +57,21 @@ class ListService:
         self,
         site_id: str,
         list_id: str,
-        select_fields: list[str] | None = None,
-    ) -> dict:
+        select_fields: builtins.list[str] | None = None,
+    ) -> dict[str, Any]:
         """Get a list by ID."""
         params = None
         if select_fields:
             params = {"$select": ",".join(select_fields)}
 
-        return self._http.request(
-            "GET", f"/sites/{site_id}/lists/{list_id}", params=params
-        )
+        return self._http.request("GET", f"/sites/{site_id}/lists/{list_id}", params=params)
 
     @requires_capability(SharePointCapability.LISTS_READ)
     def get_columns(
         self,
         site_id: str,
         list_id: str,
-        select_fields: list[str] | None = None,
+        select_fields: builtins.list[str] | None = None,
     ) -> PagedResult:
         """Get column definitions for a list."""
         params = None
@@ -93,7 +95,7 @@ class ListService:
         """Get one page of items from a list."""
         current = query or ListItemsQuery()
 
-        params: dict = {"$top": current.top}
+        params: dict[str, Any] = {"$top": current.top}
         if current.skip:
             params["$skip"] = current.skip
         if current.select_fields:
@@ -105,9 +107,7 @@ class ListService:
         if current.expand:
             params["$expand"] = current.expand
 
-        data = self._http.request(
-            "GET", f"/sites/{site_id}/lists/{list_id}/items", params=params
-        )
+        data = self._http.request("GET", f"/sites/{site_id}/lists/{list_id}/items", params=params)
 
         return build_paged_result(data, current.top, current.skip)
 
@@ -117,11 +117,11 @@ class ListService:
         site_id: str,
         list_id: str,
         query: ListItemsQuery | None = None,
-    ) -> list[dict]:
+    ) -> builtins.list[dict[str, Any]]:
         """Get all items from a list (auto-follows pagination)."""
         current = query or ListItemsQuery()
 
-        params: dict = {"$top": current.top}
+        params: dict[str, Any] = {"$top": current.top}
         if current.select_fields:
             params["$select"] = ",".join(current.select_fields)
         if current.filter:
@@ -131,11 +131,9 @@ class ListService:
         if current.expand:
             params["$expand"] = current.expand
 
-        data = self._http.request(
-            "GET", f"/sites/{site_id}/lists/{list_id}/items", params=params
-        )
+        data = self._http.request("GET", f"/sites/{site_id}/lists/{list_id}/items", params=params)
 
-        items = data.get("value", [])
+        items: list[dict[str, Any]] = data.get("value", [])
         while "@odata.nextLink" in data:
             data = self._http.request_url("GET", data["@odata.nextLink"])
             items.extend(data.get("value", []))
@@ -149,7 +147,7 @@ class ListService:
         list_id: str,
         item_id: str,
         expand: str | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get a single list item by ID."""
         params = None
         if expand:
@@ -167,7 +165,7 @@ class ListService:
         site_id: str,
         list_id: str,
         item: CreateListItem,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Create a new list item."""
         return self._http.request(
             "POST",
@@ -182,7 +180,7 @@ class ListService:
         list_id: str,
         item_id: str,
         item: UpdateListItem,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Update an existing list item fields."""
         return self._http.request(
             "PATCH",
@@ -198,17 +196,15 @@ class ListService:
         item_id: str,
     ) -> None:
         """Delete a list item."""
-        self._http.request(
-            "DELETE", f"/sites/{site_id}/lists/{list_id}/items/{item_id}"
-        )
+        self._http.request("DELETE", f"/sites/{site_id}/lists/{list_id}/items/{item_id}")
 
     @requires_capability(SharePointCapability.LISTS_WRITE)
     def batch_create(
         self,
         site_id: str,
         list_id: str,
-        items: list[CreateListItem],
-    ) -> list[dict]:
+        items: builtins.list[CreateListItem],
+    ) -> builtins.list[dict[str, Any]]:
         """Create multiple list items sequentially."""
         return [self.create_item(site_id, list_id, item) for item in items]
 

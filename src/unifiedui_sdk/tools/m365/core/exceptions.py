@@ -20,8 +20,7 @@ class M365CapabilityError(M365ClientError):
         """
         self.capability = capability
         super().__init__(
-            f"Capability '{capability}' is not enabled. "
-            "Add it to the capabilities list in the constructor."
+            f"Capability '{capability}' is not enabled. Add it to the capabilities list in the constructor."
         )
 
 

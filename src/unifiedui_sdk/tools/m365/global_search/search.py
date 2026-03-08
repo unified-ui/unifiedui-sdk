@@ -1,5 +1,7 @@
 """Microsoft 365 Global Search service."""
 
+from typing import Any
+
 from unifiedui_sdk.tools.m365.core.http import GraphRequestHandler
 from unifiedui_sdk.tools.m365.global_search.models import (
     BatchSearchQuery,
@@ -19,7 +21,7 @@ class SearchService:
         """
         self._http = http
 
-    def query(self, request: SearchRequest | None = None) -> list[dict]:
+    def query(self, request: SearchRequest | None = None) -> list[dict[str, Any]]:
         """Execute a single search request."""
         current = request or SearchRequest()
 
@@ -33,9 +35,10 @@ class SearchService:
         if not responses:
             return []
 
-        return responses[0].get("hitsContainers", [])
+        result: list[dict[str, Any]] = responses[0].get("hitsContainers", [])
+        return result
 
-    def batch_query(self, batch: BatchSearchQuery) -> list[list[dict]]:
+    def batch_query(self, batch: BatchSearchQuery) -> list[list[dict[str, Any]]]:
         """Execute a batch with multiple search requests."""
         if not batch.requests:
             return []
@@ -43,21 +46,19 @@ class SearchService:
         data = self._http.request(
             "POST",
             "/search/query",
-            json_body={
-                "requests": [self._build(item) for item in batch.requests]
-            },
+            json_body={"requests": [self._build(item) for item in batch.requests]},
         )
 
-        responses = data.get("value", [])
+        responses: list[dict[str, Any]] = data.get("value", [])
         return [item.get("hitsContainers", []) for item in responses]
 
     def query_all_pages(
         self,
         request: SearchRequest,
         max_pages: int = 10,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Auto-paginate through results and return all hits."""
-        all_hits: list[dict] = []
+        all_hits: list[dict[str, Any]] = []
         current_skip = request.skip
 
         for _ in range(max_pages):
@@ -81,9 +82,7 @@ class SearchService:
             has_more_results = False
             for container in containers:
                 all_hits.extend(container.get("hits", []))
-                has_more_results = has_more_results or container.get(
-                    "moreResultsAvailable", False
-                )
+                has_more_results = has_more_results or container.get("moreResultsAvailable", False)
 
             if not has_more_results:
                 break
@@ -93,14 +92,11 @@ class SearchService:
         return all_hits
 
     @staticmethod
-    def _build(request: SearchRequest) -> dict:
+    def _build(request: SearchRequest) -> dict[str, Any]:
         """Build one request body for Graph search API."""
-        entity_types = [
-            entity.value if isinstance(entity, EntityType) else entity
-            for entity in request.entity_types
-        ]
+        entity_types = [entity.value if isinstance(entity, EntityType) else entity for entity in request.entity_types]
 
-        body: dict = {
+        body: dict[str, Any] = {
             "entityTypes": entity_types,
             "query": {"queryString": request.query},
             "from": request.skip,
