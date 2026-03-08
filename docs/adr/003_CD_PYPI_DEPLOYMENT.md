@@ -1,7 +1,7 @@
 # ADR-003: CD — Automatisches PyPI Deployment
 
-**Status:** Proposed  
-**Datum:** 2026-03-08  
+**Status:** Proposed
+**Datum:** 2026-03-08
 **Autor:** Enrico Goerlitz
 
 ---
@@ -45,29 +45,29 @@ pyproject.toml    PyPI aktuell    Neue Version    Erklärung
 def calculate_next_version(floor_version: str, pypi_version: str | None) -> str:
     """
     Berechnet die nächste Version basierend auf Floor und PyPI.
-    
+
     Args:
         floor_version: Version aus pyproject.toml (z.B. "0.1.0")
         pypi_version: Aktuelle Version auf PyPI oder None
-    
+
     Returns:
         Nächste zu veröffentlichende Version
     """
     floor = parse_version(floor_version)  # (major, minor, patch)
-    
+
     if pypi_version is None:
         return floor_version
-    
+
     current = parse_version(pypi_version)
-    
+
     # Floor ist höher als aktuell → verwende Floor
     if (floor.major, floor.minor) > (current.major, current.minor):
         return floor_version
-    
+
     # Gleicher Major.Minor → inkrementiere Patch
     if (floor.major, floor.minor) == (current.major, current.minor):
         return f"{current.major}.{current.minor}.{current.patch + 1}"
-    
+
     # Floor ist niedriger → inkrementiere PyPI-Version
     return f"{current.major}.{current.minor}.{current.patch + 1}"
 ```
@@ -134,8 +134,8 @@ Developer erstellen manuell Tags für Releases. Das CD-Workflow deployed nur bei
                                                           │
                                                           ▼
                                                  (kein automatisches Release)
-                                                          
-                                                          
+
+
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │  git tag v1.2.3 │────▶│  git push --tags │────▶│  CD Workflow    │
 └─────────────────┘     └──────────────────┘     │  (on: push tag) │
@@ -229,11 +229,11 @@ def get_pypi_version(package_name: str) -> str | None:
             return match.group(1)
     except Exception:
         pass
-    
+
     # Fallback: Query PyPI API
     import urllib.request
     import json
-    
+
     try:
         url = f"https://pypi.org/pypi/{package_name}/json"
         with urllib.request.urlopen(url, timeout=10) as response:
@@ -247,14 +247,14 @@ def calculate_next_version(floor: str, current: str | None) -> str:
     """Calculate next version based on floor and current PyPI version."""
     if current is None:
         return floor
-    
+
     floor_parts = parse_version(floor)
     current_parts = parse_version(current)
-    
+
     # Floor Major.Minor is higher → use floor
     if (floor_parts[0], floor_parts[1]) > (current_parts[0], current_parts[1]):
         return floor
-    
+
     # Same Major.Minor → increment patch
     return f"{current_parts[0]}.{current_parts[1]}.{current_parts[2] + 1}"
 
@@ -262,15 +262,15 @@ def calculate_next_version(floor: str, current: str | None) -> str:
 def main() -> None:
     """Main entry point."""
     package_name = "unifiedui-sdk"
-    
+
     floor = get_floor_version()
     current = get_pypi_version(package_name)
     next_version = calculate_next_version(floor, current)
-    
+
     print(f"Floor version (pyproject.toml): {floor}")
     print(f"Current version (PyPI): {current or 'not published'}")
     print(f"Next version: {next_version}")
-    
+
     # Output for GitHub Actions
     if len(sys.argv) > 1 and sys.argv[1] == "--output":
         print(f"\n::set-output name=version::{next_version}")
@@ -308,7 +308,7 @@ jobs:
     runs-on: ubuntu-latest
     # Prevent duplicate runs from merge commits
     if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[skip ci]')
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -325,25 +325,25 @@ jobs:
         id: version
         run: |
           FLOOR=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
-          
+
           # Query PyPI for current version
           CURRENT=$(curl -s https://pypi.org/pypi/unifiedui-sdk/json 2>/dev/null | python -c "import sys, json; d=json.load(sys.stdin); print(d['info']['version'])" 2>/dev/null || echo "")
-          
+
           echo "floor=$FLOOR" >> $GITHUB_OUTPUT
           echo "current=$CURRENT" >> $GITHUB_OUTPUT
-          
+
           # Calculate next version
           python << 'EOF'
           import os
           import re
-          
+
           floor = os.environ.get('FLOOR', '0.1.0')
           current = os.environ.get('CURRENT', '')
-          
+
           def parse(v):
               m = re.match(r'(\d+)\.(\d+)\.(\d+)', v)
               return (int(m.group(1)), int(m.group(2)), int(m.group(3))) if m else (0, 0, 0)
-          
+
           if not current:
               next_ver = floor
           else:
@@ -353,10 +353,10 @@ jobs:
                   next_ver = floor
               else:
                   next_ver = f"{c[0]}.{c[1]}.{c[2] + 1}"
-          
+
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write(f"version={next_ver}\n")
-          
+
           print(f"Floor: {floor}, Current: {current or 'N/A'}, Next: {next_ver}")
           EOF
         env:
@@ -634,7 +634,7 @@ gh pr merge --squash
 ```yaml
 # Empfohlene Branch Protection Rules für main:
 - Require pull request reviews: 1
-- Require status checks: 
+- Require status checks:
   - lint
   - type-check
   - test

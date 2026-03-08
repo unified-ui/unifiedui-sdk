@@ -29,6 +29,12 @@ dependencies = [
     "httpx>=0.27",
 ]
 
+[project.optional-dependencies]
+m365 = [
+    "msal>=1.28",
+    "requests>=2.31",
+]
+
 [project.urls]
 Homepage = "https://github.com/unified-ui/unifiedui-sdk"
 Documentation = "https://github.com/unified-ui/unifiedui-sdk/tree/main/docs"
@@ -53,6 +59,9 @@ dev = [
     "mypy>=1.15",
     "pre-commit>=4.0",
     "types-PyYAML>=6.0",
+    "msal>=1.28",
+    "requests>=2.31",
+    "types-requests>=2.31",
 ]
 poc = [
     "langchain>=0.3",
