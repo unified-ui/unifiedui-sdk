@@ -18,6 +18,15 @@ repos:
         args: [--fix]
       - id: ruff-format
 
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: uv run mypy src/
+        language: system
+        types: [python]
+        pass_filenames: false
+
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
     rev: v9.21.0
     hooks:
