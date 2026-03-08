@@ -2,11 +2,13 @@
 
 ## Type Hints
 
-- **Required** on all public functions, methods, and class attributes
+- **Required** on ALL function signatures — every parameter and return type must be annotated, no exceptions (applies to public, private, and nested functions)
 - Use `from __future__ import annotations` where beneficial
 - Prefer `X | None` over `Optional[X]`
 - Use `typing.Protocol` for structural subtyping
 - Mark the package as typed via `py.typed` (PEP 561)
+- **No `# type: ignore` without a specific error code** (e.g. `# type: ignore[override]`)
+- Run `uv run mypy src/` to verify — **zero errors required**
 
 ## Docstrings
 
