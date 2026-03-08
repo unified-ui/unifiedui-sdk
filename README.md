@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://docs.astral.sh/ruff/)
 
-> **Python SDK for external integration with the unified-ui platform** — tracing, streaming, agents, and more.
+> **Python SDK for external integration with the unified-ui platform** — tracing, streaming, agents, and more!
 
 ## What is unified-ui?
 
