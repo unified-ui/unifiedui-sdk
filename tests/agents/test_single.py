@@ -66,9 +66,7 @@ class TestRunSingleAgentBasic:
         mock_graph.astream_events = _no_events
 
         with _setup_langchain_mock(mock_graph):
-            msgs = await _collect(
-                run_single_agent(llm=llm, tools=[], config=config, message="hi")
-            )
+            msgs = await _collect(run_single_agent(llm=llm, tools=[], config=config, message="hi"))
 
         types = [m.type for m in msgs]
         assert types[0] == StreamMessageType.STREAM_START
@@ -93,9 +91,7 @@ class TestRunSingleAgentBasic:
         mock_graph.astream_events = _events
 
         with _setup_langchain_mock(mock_graph):
-            msgs = await _collect(
-                run_single_agent(llm=llm, tools=[], config=config, message="hi")
-            )
+            msgs = await _collect(run_single_agent(llm=llm, tools=[], config=config, message="hi"))
 
         text_msgs = [m for m in msgs if m.type == StreamMessageType.TEXT_STREAM]
         assert len(text_msgs) == 2
@@ -129,9 +125,7 @@ class TestRunSingleAgentReasoning:
         mock_graph.astream_events = _events
 
         with _setup_langchain_mock(mock_graph):
-            msgs = await _collect(
-                run_single_agent(llm=llm, tools=[], config=config, message="hi")
-            )
+            msgs = await _collect(run_single_agent(llm=llm, tools=[], config=config, message="hi"))
 
         types = [m.type for m in msgs]
         assert StreamMessageType.REASONING_START in types
@@ -154,9 +148,7 @@ class TestRunSingleAgentReasoning:
         mock_graph.astream_events = _events
 
         with _setup_langchain_mock(mock_graph):
-            msgs = await _collect(
-                run_single_agent(llm=llm, tools=[], config=config, message="hi")
-            )
+            msgs = await _collect(run_single_agent(llm=llm, tools=[], config=config, message="hi"))
 
         types = [m.type for m in msgs]
         assert types[-2] == StreamMessageType.REASONING_END
@@ -189,9 +181,7 @@ class TestRunSingleAgentTools:
         mock_graph.astream_events = _events
 
         with _setup_langchain_mock(mock_graph):
-            msgs = await _collect(
-                run_single_agent(llm=llm, tools=[], config=config, message="calc")
-            )
+            msgs = await _collect(run_single_agent(llm=llm, tools=[], config=config, message="calc"))
 
         types = [m.type for m in msgs]
         assert StreamMessageType.TOOL_CALL_START in types
@@ -227,9 +217,7 @@ class TestRunSingleAgentTools:
         mock_graph.astream_events = _events
 
         with _setup_langchain_mock(mock_graph):
-            msgs = await _collect(
-                run_single_agent(llm=llm, tools=[], config=config, message="err")
-            )
+            msgs = await _collect(run_single_agent(llm=llm, tools=[], config=config, message="err"))
 
         end_msg = next(m for m in msgs if m.type == StreamMessageType.TOOL_CALL_END)
         assert end_msg.config["tool_status"] == "error"
@@ -258,9 +246,7 @@ class TestRunSingleAgentTools:
         mock_graph.astream_events = _events
 
         with _setup_langchain_mock(mock_graph):
-            msgs = await _collect(
-                run_single_agent(llm=llm, tools=[], config=config, message="s")
-            )
+            msgs = await _collect(run_single_agent(llm=llm, tools=[], config=config, message="s"))
 
         start_msg = next(m for m in msgs if m.type == StreamMessageType.TOOL_CALL_START)
         assert start_msg.config["tool_arguments"] == {"input": "raw-string"}
@@ -289,11 +275,7 @@ class TestRunSingleAgentHistory:
         ]
 
         with _setup_langchain_mock(mock_graph):
-            msgs = await _collect(
-                run_single_agent(
-                    llm=llm, tools=[], config=config, message="test", history=history
-                )
-            )
+            msgs = await _collect(run_single_agent(llm=llm, tools=[], config=config, message="test", history=history))
 
         assert msgs[0].type == StreamMessageType.STREAM_START
 
@@ -312,11 +294,7 @@ class TestRunSingleAgentHistory:
         writer = StreamWriter()
 
         with _setup_langchain_mock(mock_graph):
-            msgs = await _collect(
-                run_single_agent(
-                    llm=llm, tools=[], config=config, message="test", writer=writer
-                )
-            )
+            msgs = await _collect(run_single_agent(llm=llm, tools=[], config=config, message="test", writer=writer))
 
         assert msgs[0].type == StreamMessageType.STREAM_START
 
@@ -337,9 +315,7 @@ class TestRunSingleAgentHistory:
         mock_graph.astream_events = _events
 
         with _setup_langchain_mock(mock_graph):
-            msgs = await _collect(
-                run_single_agent(llm=llm, tools=[], config=config, message="test")
-            )
+            msgs = await _collect(run_single_agent(llm=llm, tools=[], config=config, message="test"))
 
         text_msgs = [m for m in msgs if m.type == StreamMessageType.TEXT_STREAM]
         assert len(text_msgs) == 0

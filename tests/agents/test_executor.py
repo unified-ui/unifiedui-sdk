@@ -232,9 +232,7 @@ class TestExecutePlanMultiStep:
                 ExecutionStep(
                     step_number=2,
                     tasks=[
-                        SubAgentTask(
-                            id="t2", name="B", description="d", instructions="i", depends_on=["t1"]
-                        ),
+                        SubAgentTask(id="t2", name="B", description="d", instructions="i", depends_on=["t1"]),
                     ],
                 ),
             ],

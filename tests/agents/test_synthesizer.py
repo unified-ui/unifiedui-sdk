@@ -166,10 +166,6 @@ class TestSynthesize:
 
         llm.astream = _astream
 
-        msgs = await _collect(
-            synthesize(
-                llm=llm, plan=plan, step_results={}, user_message="test", writer=writer
-            )
-        )
+        msgs = await _collect(synthesize(llm=llm, plan=plan, step_results={}, user_message="test", writer=writer))
 
         assert any(m.type == StreamMessageType.SYNTHESIS_STREAM for m in msgs)

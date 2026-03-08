@@ -90,9 +90,7 @@ class TestRunMultiAgentLifecycle:
             patch("unifiedui_sdk.agents.multi.orchestrator.execute_plan", side_effect=mock_execute),
             patch("unifiedui_sdk.agents.multi.orchestrator.synthesize", side_effect=mock_synth),
         ):
-            msgs = await _collect(
-                run_multi_agent(llm=llm, tools=[], config=config, message="complex task")
-            )
+            msgs = await _collect(run_multi_agent(llm=llm, tools=[], config=config, message="complex task"))
 
         types = [m.type for m in msgs]
         assert types[0] == StreamMessageType.STREAM_START
@@ -135,11 +133,7 @@ class TestRunMultiAgentLifecycle:
             patch("unifiedui_sdk.agents.multi.orchestrator.execute_plan", side_effect=mock_execute),
             patch("unifiedui_sdk.agents.multi.orchestrator.synthesize", side_effect=mock_synth),
         ):
-            msgs = await _collect(
-                run_multi_agent(
-                    llm=llm, tools=[], config=config, message="test", history=history
-                )
-            )
+            msgs = await _collect(run_multi_agent(llm=llm, tools=[], config=config, message="test", history=history))
 
         assert msgs[0].type == StreamMessageType.STREAM_START
         assert msgs[-1].type == StreamMessageType.STREAM_END
@@ -170,10 +164,6 @@ class TestRunMultiAgentLifecycle:
             patch("unifiedui_sdk.agents.multi.orchestrator.execute_plan", side_effect=mock_execute),
             patch("unifiedui_sdk.agents.multi.orchestrator.synthesize", side_effect=mock_synth),
         ):
-            msgs = await _collect(
-                run_multi_agent(
-                    llm=llm, tools=[], config=config, message="test", writer=writer
-                )
-            )
+            msgs = await _collect(run_multi_agent(llm=llm, tools=[], config=config, message="test", writer=writer))
 
         assert msgs[0].type == StreamMessageType.STREAM_START
