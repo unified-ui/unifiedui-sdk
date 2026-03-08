@@ -424,7 +424,101 @@ jobs:
 
 ---
 
-## 5. Entwickler-Workflow
+## 5. Branching-Strategie
+
+### Branch-Hierarchie
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                                                                     │
+│   feat/* ───┐                                                       │
+│   fix/*  ───┼───▶ develop ───▶ release/* ───▶ main                 │
+│   docs/* ───┤         ▲              │          │                   │
+│   ci/*   ───┘         │              ▼          ▼                   │
+│                       └────── hotfix/* ────────▶│                   │
+│                             (backport)                              │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Branch-Typen
+
+| Branch | Beschreibung | PR-Ziel |
+|--------|--------------|---------|
+| `main` | Produktions-Code, immer stabil | — (protected) |
+| `develop` | Integrations-Branch für Features | `main` via `release/*` |
+| `feat/*` | Neue Features | `develop` |
+| `fix/*` | Bug Fixes | `develop` |
+| `hotfix/*` | Dringende Produktions-Fixes | `main` + `develop` |
+| `release/*` | Release-Vorbereitung | `main` + `develop` |
+| `docs/*` | Dokumentation | `develop` |
+| `ci/*` | CI/CD Änderungen | `develop` |
+| `refactor/*` | Code-Refactoring | `develop` |
+| `test/*` | Test-Ergänzungen | `develop` |
+| `chore/*` | Maintenance-Tasks | `develop` |
+
+### PR-Regeln (CI-enforced)
+
+| Ziel-Branch | Erlaubte Source-Branches |
+|-------------|--------------------------|
+| `main` | `develop`, `hotfix/*`, `release/*` |
+| `develop` | `feat/*`, `fix/*`, `docs/*`, `refactor/*`, `test/*`, `ci/*`, `chore/*`, `release/*` (backport), `hotfix/*` (backport) |
+
+### Typischer Workflow
+
+```bash
+# 1. Feature entwickeln
+git checkout develop
+git pull origin develop
+git checkout -b feat/new-tracing-module
+
+# 2. Commits machen (Conventional Commits!)
+git commit -m "feat(tracing): add LangChain tracer"
+git commit -m "test(tracing): add unit tests for tracer"
+
+# 3. PR auf develop
+git push -u origin feat/new-tracing-module
+gh pr create --base develop --fill
+
+# 4. Nach Review: Merge auf develop
+
+# 5. Release vorbereiten
+git checkout develop
+git pull origin develop
+git checkout -b release/0.2.0
+
+# 6. Version in pyproject.toml bumpen (optional)
+# 7. PR auf main
+gh pr create --base main --title "release: v0.2.0"
+
+# 8. Merge → CD deployed automatisch zu PyPI
+```
+
+### Hotfix-Workflow
+
+```bash
+# 1. Hotfix-Branch von main
+git checkout main
+git pull origin main
+git checkout -b hotfix/critical-security-fix
+
+# 2. Fix anwenden
+git commit -m "fix(security): patch XSS vulnerability"
+
+# 3. PR direkt auf main
+gh pr create --base main --title "hotfix: critical security fix"
+
+# 4. Nach Merge: Backport auf develop
+git checkout develop
+git pull origin develop
+git merge hotfix/critical-security-fix
+git push origin develop
+# Oder via PR: gh pr create --base develop --head hotfix/critical-security-fix
+```
+
+---
+
+## 6. Entwickler-Workflow
 
 ### Neues Patch-Release (automatisch)
 
@@ -477,7 +571,7 @@ gh pr merge --squash
 
 ---
 
-## 6. Sicherheitsüberlegungen
+## 7. Sicherheitsüberlegungen
 
 ### Trusted Publishing (OIDC)
 
@@ -513,7 +607,7 @@ gh pr merge --squash
 
 ---
 
-## 7. Rollback-Strategie
+## 8. Rollback-Strategie
 
 ### PyPI Yank (Soft-Delete)
 
@@ -541,7 +635,7 @@ gh pr merge --squash
 
 ---
 
-## 8. Monitoring & Notifications
+## 9. Monitoring & Notifications
 
 ### GitHub Actions Status
 
@@ -564,7 +658,7 @@ PyPI kann Webhooks an Discord/Slack senden:
 
 ---
 
-## 9. Alternativen (Nicht gewählt)
+## 10. Alternativen (Nicht gewählt)
 
 ### Conventional Commits + semantic-release
 
@@ -592,7 +686,7 @@ PyPI kann Webhooks an Discord/Slack senden:
 
 ---
 
-## 10. Entscheidung
+## 11. Entscheidung
 
 **Gewählte Option:** A (Floor-Based Auto-Versioning)
 
