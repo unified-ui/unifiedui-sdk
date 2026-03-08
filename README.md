@@ -294,6 +294,12 @@ gitGraph
     checkout develop
     merge feat/tracing id: "merge tracing"
 
+    branch fix/memory-leak
+    checkout fix/memory-leak
+    commit id: "fix leak"
+    checkout develop
+    merge fix/memory-leak id: "merge fix"
+
     branch feat/streaming
     checkout feat/streaming
     commit id: "add streaming"
@@ -315,6 +321,12 @@ gitGraph
     commit id: "add agents"
     checkout develop
     merge feat/agents id: "merge agents"
+
+    branch fix/validation-error
+    checkout fix/validation-error
+    commit id: "fix validation"
+    checkout develop
+    merge fix/validation-error id: "merge validation fix"
 
     checkout main
     branch hotfix/0.1.1
