@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from unifiedui_sdk.agents.tools.mcp import (
     _build_args_model_from_json_schema,
     _json_schema_to_python_type,
+    _session_to_tools,
+    mcp_to_langchain_tools,
 )
 
 
@@ -85,3 +91,146 @@ class TestBuildArgsModelFromJsonSchema:
         schema = {"properties": {"x": {"type": "string"}}, "required": ["x"]}
         model = _build_args_model_from_json_schema("my_tool", schema)
         assert "my_tool" in model.__name__
+
+
+class TestMcpToLangchainTools:
+    """Tests for mcp_to_langchain_tools dispatch."""
+
+    @pytest.mark.asyncio
+    async def test_sse_transport(self) -> None:
+        with patch(
+            "unifiedui_sdk.agents.tools.mcp._connect_sse_or_http",
+            new_callable=AsyncMock,
+            return_value=[MagicMock()],
+        ) as mock_conn:
+            result = await mcp_to_langchain_tools(
+                {"transport": "sse", "url": "http://localhost"},
+            )
+
+        assert len(result) == 1
+        mock_conn.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_streamable_http_transport(self) -> None:
+        with patch(
+            "unifiedui_sdk.agents.tools.mcp._connect_sse_or_http",
+            new_callable=AsyncMock,
+            return_value=[MagicMock()],
+        ):
+            result = await mcp_to_langchain_tools(
+                {"transport": "streamable_http", "url": "http://localhost"},
+            )
+
+        assert len(result) == 1
+
+    @pytest.mark.asyncio
+    async def test_stdio_transport(self) -> None:
+        with patch(
+            "unifiedui_sdk.agents.tools.mcp._connect_stdio",
+            new_callable=AsyncMock,
+            return_value=[MagicMock()],
+        ):
+            result = await mcp_to_langchain_tools({"transport": "stdio", "command": "node"})
+
+        assert len(result) == 1
+
+    @pytest.mark.asyncio
+    async def test_default_transport_is_sse(self) -> None:
+        with patch(
+            "unifiedui_sdk.agents.tools.mcp._connect_sse_or_http",
+            new_callable=AsyncMock,
+            return_value=[],
+        ) as mock_conn:
+            await mcp_to_langchain_tools({"url": "http://localhost"})
+
+        mock_conn.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_unsupported_transport_raises(self) -> None:
+        with pytest.raises(ValueError, match="Unsupported MCP transport"):
+            await mcp_to_langchain_tools({"transport": "grpc"})
+
+    @pytest.mark.asyncio
+    async def test_with_credential(self) -> None:
+        with patch(
+            "unifiedui_sdk.agents.tools.mcp._connect_sse_or_http",
+            new_callable=AsyncMock,
+            return_value=[],
+        ) as mock_conn:
+            await mcp_to_langchain_tools(
+                {"transport": "sse", "url": "http://localhost"},
+                credential="token123",
+            )
+
+        mock_conn.assert_called_once_with(
+            {"transport": "sse", "url": "http://localhost"},
+            "token123",
+        )
+
+
+class TestSessionToTools:
+    """Tests for _session_to_tools."""
+
+    @pytest.mark.asyncio
+    async def test_converts_tools(self) -> None:
+        mcp_tool = MagicMock()
+        mcp_tool.name = "my_tool"
+        mcp_tool.description = "A test tool"
+        mcp_tool.inputSchema = {
+            "type": "object",
+            "properties": {"query": {"type": "string", "description": "Search query"}},
+            "required": ["query"],
+        }
+
+        tools_result = MagicMock()
+        tools_result.tools = [mcp_tool]
+
+        session = AsyncMock()
+        session.list_tools = AsyncMock(return_value=tools_result)
+
+        result = await _session_to_tools(session)
+        assert len(result) == 1
+        assert result[0].name == "my_tool"
+        assert result[0].description == "A test tool"
+
+    @pytest.mark.asyncio
+    async def test_tool_without_description(self) -> None:
+        mcp_tool = MagicMock()
+        mcp_tool.name = "bare_tool"
+        mcp_tool.description = None
+        mcp_tool.inputSchema = {"type": "object", "properties": {}}
+
+        tools_result = MagicMock()
+        tools_result.tools = [mcp_tool]
+
+        session = AsyncMock()
+        session.list_tools = AsyncMock(return_value=tools_result)
+
+        result = await _session_to_tools(session)
+        assert result[0].description == "bare_tool"
+
+    @pytest.mark.asyncio
+    async def test_tool_without_input_schema(self) -> None:
+        mcp_tool = MagicMock(spec=[])
+        mcp_tool.name = "no_schema"
+        mcp_tool.description = "No schema"
+
+        tools_result = MagicMock()
+        tools_result.tools = [mcp_tool]
+
+        session = AsyncMock()
+        session.list_tools = AsyncMock(return_value=tools_result)
+
+        result = await _session_to_tools(session)
+        assert len(result) == 1
+
+    @pytest.mark.asyncio
+    async def test_empty_tools_list(self) -> None:
+        tools_result = MagicMock()
+        tools_result.tools = []
+
+        session = AsyncMock()
+        session.list_tools = AsyncMock(return_value=tools_result)
+
+        result = await _session_to_tools(session)
+        assert result == []

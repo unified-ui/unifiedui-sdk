@@ -34,7 +34,7 @@ def calculator(expression: str) -> str:
         expression: A mathematical expression like '2 + 3 * 4'.
     """
     try:
-        result = eval(expression, {"__builtins__": {}})  # noqa: S307
+        result = eval(expression, {"__builtins__": {}})
         return f"Result: {result}"
     except Exception as e:
         return f"Error: {e}"
@@ -98,7 +98,10 @@ async def main() -> None:
     print("Single-Agent POC")
     print("=" * 60)
 
-    message = "Calculate 42 * 17, then count the words in 'The quick brown fox jumps over the lazy dog', and reverse the word 'unified'"
+    message = (
+        "Calculate 42 * 17, then count the words in "
+        "'The quick brown fox jumps over the lazy dog', and reverse the word 'unified'"
+    )
 
     print(f"\nUser: {message}\n")
     print("-" * 60)

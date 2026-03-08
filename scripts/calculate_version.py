@@ -42,6 +42,7 @@ class Version(NamedTuple):
     patch: int
 
     def __str__(self) -> str:
+        """Return version as 'major.minor.patch' string."""
         return f"{self.major}.{self.minor}.{self.patch}"
 
 
@@ -182,7 +183,7 @@ def main() -> None:
                 f.write(f"floor={result.floor}\n")
                 f.write(f"current={result.current or ''}\n")
                 f.write(f"version={result.next}\n")
-            print(f"\n✅ Wrote outputs to GITHUB_OUTPUT")
+            print("\n✅ Wrote outputs to GITHUB_OUTPUT")
         else:
             # Fallback for older GitHub Actions syntax
             print(f"\n::set-output name=floor::{result.floor}")

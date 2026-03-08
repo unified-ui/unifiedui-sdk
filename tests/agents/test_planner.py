@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -11,6 +11,7 @@ from unifiedui_sdk.agents.multi.planner import (
     ExecutionStep,
     SubAgentTask,
     _validate_plan,
+    generate_plan,
 )
 
 
@@ -203,3 +204,140 @@ class TestValidatePlan:
             ],
         )
         _validate_plan(plan, [])
+
+
+class TestGeneratePlan:
+    """Tests for generate_plan function."""
+
+    @staticmethod
+    def _make_tool(name: str, desc: str = "A tool") -> MagicMock:
+        tool = MagicMock()
+        tool.name = name
+        tool.description = desc
+        return tool
+
+    @pytest.mark.asyncio
+    async def test_returns_valid_plan(self) -> None:
+        plan = ExecutionPlan(
+            goal="Test",
+            reasoning="Because",
+            steps=[
+                ExecutionStep(
+                    step_number=1,
+                    tasks=[SubAgentTask(id="t1", name="A", description="d", instructions="i")],
+                ),
+            ],
+        )
+
+        structured_llm = AsyncMock()
+        structured_llm.ainvoke = AsyncMock(return_value=plan)
+
+        llm = MagicMock()
+        llm.with_structured_output = MagicMock(return_value=structured_llm)
+
+        from langchain_core.messages import HumanMessage
+
+        result = await generate_plan(
+            llm=llm,
+            tools=[self._make_tool("search")],
+            messages=[HumanMessage(content="test")],
+        )
+
+        assert result.goal == "Test"
+        assert len(result.steps) == 1
+
+    @pytest.mark.asyncio
+    async def test_retries_on_none(self) -> None:
+        valid_plan = ExecutionPlan(
+            goal="OK",
+            reasoning="R",
+            steps=[
+                ExecutionStep(
+                    step_number=1,
+                    tasks=[SubAgentTask(id="t1", name="A", description="d", instructions="i")],
+                ),
+            ],
+        )
+
+        structured_llm = AsyncMock()
+        structured_llm.ainvoke = AsyncMock(side_effect=[None, valid_plan])
+
+        llm = MagicMock()
+        llm.with_structured_output = MagicMock(return_value=structured_llm)
+
+        from langchain_core.messages import HumanMessage
+
+        result = await generate_plan(
+            llm=llm,
+            tools=[],
+            messages=[HumanMessage(content="test")],
+            max_iterations=2,
+        )
+
+        assert result.goal == "OK"
+
+    @pytest.mark.asyncio
+    async def test_raises_after_max_iterations(self) -> None:
+        structured_llm = AsyncMock()
+        structured_llm.ainvoke = AsyncMock(return_value=None)
+
+        llm = MagicMock()
+        llm.with_structured_output = MagicMock(return_value=structured_llm)
+
+        from langchain_core.messages import HumanMessage
+
+        with pytest.raises(ValueError, match="Failed to generate"):
+            await generate_plan(
+                llm=llm,
+                tools=[],
+                messages=[HumanMessage(content="test")],
+                max_iterations=2,
+            )
+
+    @pytest.mark.asyncio
+    async def test_raises_on_exception_after_retries(self) -> None:
+        structured_llm = AsyncMock()
+        structured_llm.ainvoke = AsyncMock(side_effect=RuntimeError("LLM error"))
+
+        llm = MagicMock()
+        llm.with_structured_output = MagicMock(return_value=structured_llm)
+
+        from langchain_core.messages import HumanMessage
+
+        with pytest.raises(RuntimeError, match="LLM error"):
+            await generate_plan(
+                llm=llm,
+                tools=[],
+                messages=[HumanMessage(content="test")],
+                max_iterations=1,
+            )
+
+    @pytest.mark.asyncio
+    async def test_with_security_prompt(self) -> None:
+        plan = ExecutionPlan(
+            goal="Safe",
+            reasoning="R",
+            steps=[
+                ExecutionStep(
+                    step_number=1,
+                    tasks=[SubAgentTask(id="t1", name="A", description="d", instructions="i")],
+                ),
+            ],
+        )
+
+        structured_llm = AsyncMock()
+        structured_llm.ainvoke = AsyncMock(return_value=plan)
+
+        llm = MagicMock()
+        llm.with_structured_output = MagicMock(return_value=structured_llm)
+
+        from langchain_core.messages import HumanMessage
+
+        result = await generate_plan(
+            llm=llm,
+            tools=[self._make_tool("search", "search tool")],
+            messages=[HumanMessage(content="test")],
+            security_prompt="Be very careful",
+        )
+
+        assert result.goal == "Safe"

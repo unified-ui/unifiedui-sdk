@@ -49,7 +49,7 @@ def _build_args_model(
     if not fields:
         fields["placeholder"] = (str | None, Field(default=None, description="No parameters"))
 
-    return create_model(f"{operation_id}Args", **fields)  # type: ignore[call-overload]
+    return create_model(f"{operation_id}Args", **fields)
 
 
 def _schema_to_python_type(schema: dict[str, Any]) -> type:
@@ -62,9 +62,9 @@ def _schema_to_python_type(schema: dict[str, Any]) -> type:
     }
     schema_type = schema.get("type", "string")
     if schema_type == "array":
-        return list  # type: ignore[return-value]
+        return list
     if schema_type == "object":
-        return dict  # type: ignore[return-value]
+        return dict
     return type_map.get(schema_type, str)
 
 

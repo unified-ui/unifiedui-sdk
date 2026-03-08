@@ -42,7 +42,8 @@ def get_weather(city: str) -> str:
         "Frankfurt": {"temp": 14, "condition": "partly cloudy", "humidity": 55},
         "Köln": {"temp": 11, "condition": "overcast", "humidity": 70},
     }
-    data = weather_data.get(city, {"temp": random.randint(5, 25), "condition": "unknown", "humidity": random.randint(30, 90)})
+    default = {"temp": random.randint(5, 25), "condition": "unknown", "humidity": random.randint(30, 90)}
+    data = weather_data.get(city, default)
     return f"Weather in {city}: {data['temp']}°C, {data['condition']}, {data['humidity']}% humidity"
 
 
@@ -54,7 +55,10 @@ def search_knowledge_base(query: str) -> str:
         query: Search query string.
     """
     docs = {
-        "architecture": "unified-ui is a multi-tenant platform with Agent-Service (Go/Gin), Platform-Service (Python/FastAPI), Frontend (React/TypeScript).",
+        "architecture": (
+            "unified-ui is a multi-tenant platform with Agent-Service (Go/Gin), "
+            "Platform-Service (Python/FastAPI), Frontend (React/TypeScript)."
+        ),
         "deployment": "Deploy using Docker containers to Azure Container Apps. CI/CD via GitHub Actions.",
         "security": "RBAC with tenant isolation. JWT authentication via Entra ID. API key management.",
     }

@@ -19,9 +19,9 @@ def _json_schema_to_python_type(schema: dict[str, Any]) -> type:
     }
     schema_type = schema.get("type", "string")
     if schema_type == "array":
-        return list  # type: ignore[return-value]
+        return list
     if schema_type == "object":
-        return dict  # type: ignore[return-value]
+        return dict
     return type_map.get(schema_type, str)
 
 
@@ -42,7 +42,7 @@ def _build_args_model_from_json_schema(name: str, input_schema: dict[str, Any]) 
     if not fields:
         fields["placeholder"] = (str | None, Field(default=None, description="No parameters"))
 
-    return create_model(f"{name}Args", **fields)  # type: ignore[call-overload]
+    return create_model(f"{name}Args", **fields)
 
 
 async def mcp_to_langchain_tools(

@@ -17,6 +17,7 @@ from unifiedui_sdk.tracing.models import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from uuid import UUID
 
     from langchain_core.agents import AgentAction, AgentFinish
@@ -431,7 +432,7 @@ class BaseTracer(BaseCallbackHandler):
 
     def on_retriever_end(
         self,
-        documents: list[Document],
+        documents: Sequence[Document],
         *,
         run_id: UUID,
         parent_run_id: UUID | None = None,

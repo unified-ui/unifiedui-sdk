@@ -37,7 +37,7 @@ Issues = "https://github.com/unified-ui/unifiedui-sdk/issues"
 Changelog = "https://github.com/unified-ui/unifiedui-sdk/blob/main/CHANGELOG.md"
 
 [build-system]
-requires = ["uv_build>=0.9.8,<0.10.0"]
+requires = ["uv_build>=0.9.8,<0.11.0"]
 build-backend = "uv_build"
 
 # ---------------------------------------------------------------------------
@@ -52,6 +52,7 @@ dev = [
     "ruff>=0.11",
     "mypy>=1.15",
     "pre-commit>=4.0",
+    "types-PyYAML>=6.0",
 ]
 poc = [
     "langchain>=0.3",
@@ -147,3 +148,7 @@ strict = true
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_typed = true
