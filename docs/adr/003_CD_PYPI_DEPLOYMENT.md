@@ -424,7 +424,151 @@ jobs:
 
 ---
 
-## 5. Entwickler-Workflow
+## 5. Branching-Strategie
+
+### Simplified Flow mit Auto-Versioning
+
+Dieses Projekt verwendet einen **Simplified Flow** — eine vereinfachte Variante von Git Flow, optimiert für automatisches Deployment.
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                  │
+│   SIMPLIFIED FLOW MIT AUTO-VERSIONING                                            │
+│                                                                                  │
+│   ┌──────────────────────────────────────────────────────────────────────────┐   │
+│   │                                                                          │   │
+│   │   feat/new-feature ──────┐                                               │   │
+│   │   feat/another-feature ──┤                                               │   │
+│   │                          │                                               │   │
+│   │   fix/bug-123 ───────────┼──▶ develop ─────────────────▶ main           │   │
+│   │   fix/typo ──────────────┤         │                      │             │   │
+│   │                          │         │                      ▼             │   │
+│   │   docs/readme-update ────┤         │              ┌──────────────┐      │   │
+│   │   ci/improve-workflow ───┘         │              │  CD Pipeline │      │   │
+│   │                                    │              └──────┬───────┘      │   │
+│   │                                    │                     │              │   │
+│   │   hotfix/critical ─────────────────┼─────────────────────▶              │   │
+│   │        │                           │                     │              │   │
+│   │        └───────────────────────────┘                     ▼              │   │
+│   │              (backport)                          ┌──────────────┐       │   │
+│   │                                                  │ Auto-Version │       │   │
+│   │                                                  │   + Tag      │       │   │
+│   │                                                  │   + PyPI     │       │   │
+│   │                                                  │   + Release  │       │   │
+│   │                                                  └──────────────┘       │   │
+│   │                                                                          │   │
+│   └──────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                  │
+│   AUTO-VERSIONING LOGIK:                                                         │
+│   ──────────────────────                                                         │
+│                                                                                  │
+│   pyproject.toml (Floor)    PyPI aktuell    →    Neue Version                   │
+│   ─────────────────────────────────────────────────────────────                  │
+│   0.1.0                     (nicht publ.)   →    0.1.0                          │
+│   0.1.0                     0.1.0           →    0.1.1  (patch++)               │
+│   0.1.0                     0.1.5           →    0.1.6  (patch++)               │
+│   0.2.0                     0.1.6           →    0.2.0  (minor bump! ⬆)         │
+│   1.0.0                     0.9.9           →    1.0.0  (major bump! ⬆⬆)        │
+│                                                                                  │
+│   → Patch-Releases: automatisch bei jedem Merge auf main                        │
+│   → Minor/Major:    pyproject.toml auf develop ändern, dann merge auf main      │
+│                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Branch-Typen
+
+| Branch | Beschreibung | PR-Ziel |
+|--------|--------------|---------|
+| `main` | Produktions-Code — jeder Merge = PyPI Release | — (protected) |
+| `develop` | Integrations-Branch für Features/Fixes | `main` |
+| `feat/*` | Neue Features | `develop` |
+| `fix/*` | Bug Fixes (non-urgent) | `develop` |
+| `hotfix/*` | Dringende Produktions-Fixes | `main` + `develop` (backport) |
+| `docs/*` | Dokumentation | `develop` |
+| `ci/*` | CI/CD Änderungen | `develop` |
+| `refactor/*` | Code-Refactoring | `develop` |
+| `test/*` | Test-Ergänzungen | `develop` |
+| `chore/*` | Maintenance-Tasks | `develop` |
+
+### PR-Regeln (CI-enforced)
+
+| Ziel-Branch | Erlaubte Source-Branches |
+|-------------|--------------------------|
+| `main` | `develop`, `hotfix/*` |
+| `develop` | `feat/*`, `fix/*`, `docs/*`, `refactor/*`, `test/*`, `ci/*`, `chore/*`, `hotfix/*` (backport) |
+
+### Typischer Workflow
+
+```bash
+# 1. Feature/Fix entwickeln
+git checkout develop
+git pull origin develop
+git checkout -b feat/new-tracing-module  # oder fix/memory-leak
+
+# 2. Commits machen (Conventional Commits!)
+git commit -m "feat(tracing): add LangChain tracer"
+git commit -m "test(tracing): add unit tests for tracer"
+
+# 3. PR auf develop
+git push -u origin feat/new-tracing-module
+gh pr create --base develop --fill
+
+# 4. Nach Review: Merge auf develop (Squash)
+
+# 5. Release: PR von develop auf main
+git checkout develop
+git pull origin develop
+gh pr create --base main --title "Release: new features ready"
+
+# 6. Merge → CD macht automatisch:
+#    - Version berechnen (0.1.5 → 0.1.6)
+#    - Git Tag erstellen (v0.1.6)
+#    - PyPI publishen
+#    - GitHub Release mit Changelog erstellen
+```
+
+### Minor/Major Version Bump
+
+```bash
+# Für ein Minor-Release (z.B. neue API-Features)
+git checkout develop
+git pull origin develop
+
+# pyproject.toml ändern: version = "0.2.0"
+sed -i 's/version = "0.1.0"/version = "0.2.0"/' pyproject.toml
+git commit -am "chore: bump version floor to 0.2.0"
+git push origin develop
+
+# PR auf main öffnen
+gh pr create --base main --title "Release v0.2.0"
+
+# Nach Merge: CD erstellt v0.2.0 (nicht 0.1.7!)
+```
+
+### Hotfix-Workflow
+
+```bash
+# 1. Hotfix-Branch von main
+git checkout main
+git pull origin main
+git checkout -b hotfix/critical-security-fix
+
+# 2. Fix anwenden
+git commit -m "fix(security): patch XSS vulnerability"
+
+# 3. PR direkt auf main
+gh pr create --base main --title "hotfix: critical security fix"
+
+# 4. Merge → CD deployed automatisch
+
+# 5. Backport auf develop
+gh pr create --base develop --head hotfix/critical-security-fix --title "backport: security fix"
+```
+
+---
+
+## 6. Entwickler-Workflow
 
 ### Neues Patch-Release (automatisch)
 
@@ -477,7 +621,7 @@ gh pr merge --squash
 
 ---
 
-## 6. Sicherheitsüberlegungen
+## 7. Sicherheitsüberlegungen
 
 ### Trusted Publishing (OIDC)
 
@@ -513,7 +657,7 @@ gh pr merge --squash
 
 ---
 
-## 7. Rollback-Strategie
+## 8. Rollback-Strategie
 
 ### PyPI Yank (Soft-Delete)
 
@@ -541,7 +685,7 @@ gh pr merge --squash
 
 ---
 
-## 8. Monitoring & Notifications
+## 9. Monitoring & Notifications
 
 ### GitHub Actions Status
 
@@ -564,7 +708,7 @@ PyPI kann Webhooks an Discord/Slack senden:
 
 ---
 
-## 9. Alternativen (Nicht gewählt)
+## 10. Alternativen (Nicht gewählt)
 
 ### Conventional Commits + semantic-release
 
@@ -592,7 +736,7 @@ PyPI kann Webhooks an Discord/Slack senden:
 
 ---
 
-## 10. Entscheidung
+## 11. Entscheidung
 
 **Gewählte Option:** A (Floor-Based Auto-Versioning)
 
