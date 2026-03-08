@@ -11,6 +11,9 @@
 
 ## Running Tests
 
+> **IMPORTANT**: Always run pytest with `-n auto` to enable parallel test execution via pytest-xdist.
+> This significantly speeds up test runs and is required in CI.
+
 ```bash
 # All tests (parallel, quiet)
 pytest tests/ -n auto --no-header -q
@@ -18,12 +21,15 @@ pytest tests/ -n auto --no-header -q
 # With coverage report
 pytest tests/ -n auto --cov=unifiedui_sdk --cov-report=html --cov-fail-under=80
 
-# Specific module
-pytest tests/tracing/ -v
+# Specific module (still use -n auto)
+pytest tests/tracing/ -n auto -v
 
 # By marker
-pytest tests/ -m unit
-pytest tests/ -m "not slow"
+pytest tests/ -n auto -m unit
+pytest tests/ -n auto -m "not slow"
+
+# Single test file (parallel still beneficial)
+pytest tests/tracing/test_spans.py -n auto
 ```
 
 ## Directory Structure
