@@ -1,7 +1,7 @@
 # ADR-003: CD — Automatisches PyPI Deployment
 
-**Status:** Proposed  
-**Datum:** 2026-03-08  
+**Status:** Proposed
+**Datum:** 2026-03-08
 **Autor:** Enrico Goerlitz
 
 ---
@@ -45,29 +45,29 @@ pyproject.toml    PyPI aktuell    Neue Version    Erklärung
 def calculate_next_version(floor_version: str, pypi_version: str | None) -> str:
     """
     Berechnet die nächste Version basierend auf Floor und PyPI.
-    
+
     Args:
         floor_version: Version aus pyproject.toml (z.B. "0.1.0")
         pypi_version: Aktuelle Version auf PyPI oder None
-    
+
     Returns:
         Nächste zu veröffentlichende Version
     """
     floor = parse_version(floor_version)  # (major, minor, patch)
-    
+
     if pypi_version is None:
         return floor_version
-    
+
     current = parse_version(pypi_version)
-    
+
     # Floor ist höher als aktuell → verwende Floor
     if (floor.major, floor.minor) > (current.major, current.minor):
         return floor_version
-    
+
     # Gleicher Major.Minor → inkrementiere Patch
     if (floor.major, floor.minor) == (current.major, current.minor):
         return f"{current.major}.{current.minor}.{current.patch + 1}"
-    
+
     # Floor ist niedriger → inkrementiere PyPI-Version
     return f"{current.major}.{current.minor}.{current.patch + 1}"
 ```
@@ -134,8 +134,8 @@ Developer erstellen manuell Tags für Releases. Das CD-Workflow deployed nur bei
                                                           │
                                                           ▼
                                                  (kein automatisches Release)
-                                                          
-                                                          
+
+
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │  git tag v1.2.3 │────▶│  git push --tags │────▶│  CD Workflow    │
 └─────────────────┘     └──────────────────┘     │  (on: push tag) │
@@ -229,11 +229,11 @@ def get_pypi_version(package_name: str) -> str | None:
             return match.group(1)
     except Exception:
         pass
-    
+
     # Fallback: Query PyPI API
     import urllib.request
     import json
-    
+
     try:
         url = f"https://pypi.org/pypi/{package_name}/json"
         with urllib.request.urlopen(url, timeout=10) as response:
@@ -247,14 +247,14 @@ def calculate_next_version(floor: str, current: str | None) -> str:
     """Calculate next version based on floor and current PyPI version."""
     if current is None:
         return floor
-    
+
     floor_parts = parse_version(floor)
     current_parts = parse_version(current)
-    
+
     # Floor Major.Minor is higher → use floor
     if (floor_parts[0], floor_parts[1]) > (current_parts[0], current_parts[1]):
         return floor
-    
+
     # Same Major.Minor → increment patch
     return f"{current_parts[0]}.{current_parts[1]}.{current_parts[2] + 1}"
 
@@ -262,15 +262,15 @@ def calculate_next_version(floor: str, current: str | None) -> str:
 def main() -> None:
     """Main entry point."""
     package_name = "unifiedui-sdk"
-    
+
     floor = get_floor_version()
     current = get_pypi_version(package_name)
     next_version = calculate_next_version(floor, current)
-    
+
     print(f"Floor version (pyproject.toml): {floor}")
     print(f"Current version (PyPI): {current or 'not published'}")
     print(f"Next version: {next_version}")
-    
+
     # Output for GitHub Actions
     if len(sys.argv) > 1 and sys.argv[1] == "--output":
         print(f"\n::set-output name=version::{next_version}")
@@ -308,7 +308,7 @@ jobs:
     runs-on: ubuntu-latest
     # Prevent duplicate runs from merge commits
     if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[skip ci]')
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -325,25 +325,25 @@ jobs:
         id: version
         run: |
           FLOOR=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
-          
+
           # Query PyPI for current version
           CURRENT=$(curl -s https://pypi.org/pypi/unifiedui-sdk/json 2>/dev/null | python -c "import sys, json; d=json.load(sys.stdin); print(d['info']['version'])" 2>/dev/null || echo "")
-          
+
           echo "floor=$FLOOR" >> $GITHUB_OUTPUT
           echo "current=$CURRENT" >> $GITHUB_OUTPUT
-          
+
           # Calculate next version
           python << 'EOF'
           import os
           import re
-          
+
           floor = os.environ.get('FLOOR', '0.1.0')
           current = os.environ.get('CURRENT', '')
-          
+
           def parse(v):
               m = re.match(r'(\d+)\.(\d+)\.(\d+)', v)
               return (int(m.group(1)), int(m.group(2)), int(m.group(3))) if m else (0, 0, 0)
-          
+
           if not current:
               next_ver = floor
           else:
@@ -353,10 +353,10 @@ jobs:
                   next_ver = floor
               else:
                   next_ver = f"{c[0]}.{c[1]}.{c[2] + 1}"
-          
+
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write(f"version={next_ver}\n")
-          
+
           print(f"Floor: {floor}, Current: {current or 'N/A'}, Next: {next_ver}")
           EOF
         env:
@@ -424,7 +424,151 @@ jobs:
 
 ---
 
-## 5. Entwickler-Workflow
+## 5. Branching-Strategie
+
+### Simplified Flow mit Auto-Versioning
+
+Dieses Projekt verwendet einen **Simplified Flow** — eine vereinfachte Variante von Git Flow, optimiert für automatisches Deployment.
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                  │
+│   SIMPLIFIED FLOW MIT AUTO-VERSIONING                                            │
+│                                                                                  │
+│   ┌──────────────────────────────────────────────────────────────────────────┐   │
+│   │                                                                          │   │
+│   │   feat/new-feature ──────┐                                               │   │
+│   │   feat/another-feature ──┤                                               │   │
+│   │                          │                                               │   │
+│   │   fix/bug-123 ───────────┼──▶ develop ─────────────────▶ main           │   │
+│   │   fix/typo ──────────────┤         │                      │             │   │
+│   │                          │         │                      ▼             │   │
+│   │   docs/readme-update ────┤         │              ┌──────────────┐      │   │
+│   │   ci/improve-workflow ───┘         │              │  CD Pipeline │      │   │
+│   │                                    │              └──────┬───────┘      │   │
+│   │                                    │                     │              │   │
+│   │   hotfix/critical ─────────────────┼─────────────────────▶              │   │
+│   │        │                           │                     │              │   │
+│   │        └───────────────────────────┘                     ▼              │   │
+│   │              (backport)                          ┌──────────────┐       │   │
+│   │                                                  │ Auto-Version │       │   │
+│   │                                                  │   + Tag      │       │   │
+│   │                                                  │   + PyPI     │       │   │
+│   │                                                  │   + Release  │       │   │
+│   │                                                  └──────────────┘       │   │
+│   │                                                                          │   │
+│   └──────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                  │
+│   AUTO-VERSIONING LOGIK:                                                         │
+│   ──────────────────────                                                         │
+│                                                                                  │
+│   pyproject.toml (Floor)    PyPI aktuell    →    Neue Version                   │
+│   ─────────────────────────────────────────────────────────────                  │
+│   0.1.0                     (nicht publ.)   →    0.1.0                          │
+│   0.1.0                     0.1.0           →    0.1.1  (patch++)               │
+│   0.1.0                     0.1.5           →    0.1.6  (patch++)               │
+│   0.2.0                     0.1.6           →    0.2.0  (minor bump! ⬆)         │
+│   1.0.0                     0.9.9           →    1.0.0  (major bump! ⬆⬆)        │
+│                                                                                  │
+│   → Patch-Releases: automatisch bei jedem Merge auf main                        │
+│   → Minor/Major:    pyproject.toml auf develop ändern, dann merge auf main      │
+│                                                                                  │
+└──────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Branch-Typen
+
+| Branch | Beschreibung | PR-Ziel |
+|--------|--------------|---------|
+| `main` | Produktions-Code — jeder Merge = PyPI Release | — (protected) |
+| `develop` | Integrations-Branch für Features/Fixes | `main` |
+| `feat/*` | Neue Features | `develop` |
+| `fix/*` | Bug Fixes (non-urgent) | `develop` |
+| `hotfix/*` | Dringende Produktions-Fixes | `main` + `develop` (backport) |
+| `docs/*` | Dokumentation | `develop` |
+| `ci/*` | CI/CD Änderungen | `develop` |
+| `refactor/*` | Code-Refactoring | `develop` |
+| `test/*` | Test-Ergänzungen | `develop` |
+| `chore/*` | Maintenance-Tasks | `develop` |
+
+### PR-Regeln (CI-enforced)
+
+| Ziel-Branch | Erlaubte Source-Branches |
+|-------------|--------------------------|
+| `main` | `develop`, `hotfix/*` |
+| `develop` | `feat/*`, `fix/*`, `docs/*`, `refactor/*`, `test/*`, `ci/*`, `chore/*`, `hotfix/*` (backport) |
+
+### Typischer Workflow
+
+```bash
+# 1. Feature/Fix entwickeln
+git checkout develop
+git pull origin develop
+git checkout -b feat/new-tracing-module  # oder fix/memory-leak
+
+# 2. Commits machen (Conventional Commits!)
+git commit -m "feat(tracing): add LangChain tracer"
+git commit -m "test(tracing): add unit tests for tracer"
+
+# 3. PR auf develop
+git push -u origin feat/new-tracing-module
+gh pr create --base develop --fill
+
+# 4. Nach Review: Merge auf develop (Squash)
+
+# 5. Release: PR von develop auf main
+git checkout develop
+git pull origin develop
+gh pr create --base main --title "Release: new features ready"
+
+# 6. Merge → CD macht automatisch:
+#    - Version berechnen (0.1.5 → 0.1.6)
+#    - Git Tag erstellen (v0.1.6)
+#    - PyPI publishen
+#    - GitHub Release mit Changelog erstellen
+```
+
+### Minor/Major Version Bump
+
+```bash
+# Für ein Minor-Release (z.B. neue API-Features)
+git checkout develop
+git pull origin develop
+
+# pyproject.toml ändern: version = "0.2.0"
+sed -i 's/version = "0.1.0"/version = "0.2.0"/' pyproject.toml
+git commit -am "chore: bump version floor to 0.2.0"
+git push origin develop
+
+# PR auf main öffnen
+gh pr create --base main --title "Release v0.2.0"
+
+# Nach Merge: CD erstellt v0.2.0 (nicht 0.1.7!)
+```
+
+### Hotfix-Workflow
+
+```bash
+# 1. Hotfix-Branch von main
+git checkout main
+git pull origin main
+git checkout -b hotfix/critical-security-fix
+
+# 2. Fix anwenden
+git commit -m "fix(security): patch XSS vulnerability"
+
+# 3. PR direkt auf main
+gh pr create --base main --title "hotfix: critical security fix"
+
+# 4. Merge → CD deployed automatisch
+
+# 5. Backport auf develop
+gh pr create --base develop --head hotfix/critical-security-fix --title "backport: security fix"
+```
+
+---
+
+## 6. Entwickler-Workflow
 
 ### Neues Patch-Release (automatisch)
 
@@ -477,7 +621,7 @@ gh pr merge --squash
 
 ---
 
-## 6. Sicherheitsüberlegungen
+## 7. Sicherheitsüberlegungen
 
 ### Trusted Publishing (OIDC)
 
@@ -490,7 +634,7 @@ gh pr merge --squash
 ```yaml
 # Empfohlene Branch Protection Rules für main:
 - Require pull request reviews: 1
-- Require status checks: 
+- Require status checks:
   - lint
   - type-check
   - test
@@ -513,7 +657,7 @@ gh pr merge --squash
 
 ---
 
-## 7. Rollback-Strategie
+## 8. Rollback-Strategie
 
 ### PyPI Yank (Soft-Delete)
 
@@ -541,7 +685,7 @@ gh pr merge --squash
 
 ---
 
-## 8. Monitoring & Notifications
+## 9. Monitoring & Notifications
 
 ### GitHub Actions Status
 
@@ -564,7 +708,7 @@ PyPI kann Webhooks an Discord/Slack senden:
 
 ---
 
-## 9. Alternativen (Nicht gewählt)
+## 10. Alternativen (Nicht gewählt)
 
 ### Conventional Commits + semantic-release
 
@@ -592,7 +736,7 @@ PyPI kann Webhooks an Discord/Slack senden:
 
 ---
 
-## 10. Entscheidung
+## 11. Entscheidung
 
 **Gewählte Option:** A (Floor-Based Auto-Versioning)
 

@@ -29,6 +29,12 @@ dependencies = [
     "httpx>=0.27",
 ]
 
+[project.optional-dependencies]
+m365 = [
+    "msal>=1.28",
+    "requests>=2.31",
+]
+
 [project.urls]
 Homepage = "https://github.com/unified-ui/unifiedui-sdk"
 Documentation = "https://github.com/unified-ui/unifiedui-sdk/tree/main/docs"
@@ -53,6 +59,9 @@ dev = [
     "mypy>=1.15",
     "pre-commit>=4.0",
     "types-PyYAML>=6.0",
+    "msal>=1.28",
+    "requests>=2.31",
+    "types-requests>=2.31",
 ]
 poc = [
     "langchain>=0.3",
@@ -126,6 +135,20 @@ markers = [
 [tool.coverage.run]
 source = ["unifiedui_sdk"]
 branch = true
+omit = [
+    # M365 service implementations require HTTP mocking; covered by integration tests
+    "*/tools/m365/outlook/messages.py",
+    "*/tools/m365/outlook/calendar.py",
+    "*/tools/m365/outlook/formatters.py",
+    "*/tools/m365/sharepoint/sites.py",
+    "*/tools/m365/sharepoint/drives.py",
+    "*/tools/m365/sharepoint/pages.py",
+    "*/tools/m365/sharepoint/lists.py",
+    "*/tools/m365/sharepoint/search.py",
+    "*/tools/m365/sharepoint/onenote.py",
+    "*/tools/m365/sharepoint/formatters.py",
+    "*/tools/m365/global_search/search.py",
+]
 
 [tool.coverage.report]
 fail_under = 80
