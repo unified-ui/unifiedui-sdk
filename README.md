@@ -22,6 +22,7 @@ The **unified-ui SDK** is a complementary Python package that provides capabilit
 | 🔍 **Tracing** | Standardized tracing objects; LangChain & LangGraph trace sniffing and forwarding |
 | 📡 **Streaming** | Standardized streaming response protocol for unified-ui |
 | 🤖 **Agents** | ReACT Agent class with an agent engine built on LangChain / LangGraph |
+| 🔧 **Tools** | Reusable tool clients (Microsoft 365 Graph API) for building AI agents |
 | 🧱 **Core** | Shared interfaces, base classes, and utility functions |
 
 ### How It Fits
@@ -198,7 +199,43 @@ tools = await load_tools(tool_configs)
 engine = ReActAgentEngine(config=config, llm=llm, tools=tools)
 ```
 
-> Detailed module documentation: [`tracing/`](src/unifiedui_sdk/tracing/README.md) · [`streaming/`](src/unifiedui_sdk/streaming/README.md) · [`agents/`](src/unifiedui_sdk/agents/README.md) · [`core/`](src/unifiedui_sdk/core/README.md)
+### Tools — Microsoft 365 Clients
+
+```python
+pip install unifiedui-sdk[m365]
+```
+
+```python
+from unifiedui_sdk.tools.m365 import (
+    OutlookAPIClient,
+    OutlookAuthProvider,
+    OutlookCapability,
+    SendMessage,
+)
+
+auth = OutlookAuthProvider(
+    tenant_id="your-tenant-id",
+    client_id="your-client-id",
+    client_secret="your-client-secret",
+)
+
+client = OutlookAPIClient(
+    auth_provider=auth,
+    capabilities=[OutlookCapability.MAIL_READ, OutlookCapability.MAIL_SEND],
+)
+
+# Send email
+client.messages.send(
+    user_id="me",
+    message=SendMessage(
+        to=["recipient@example.com"],
+        subject="Hello",
+        body="<p>Message from unified-ui agent</p>",
+    ),
+)
+```
+
+> Detailed module documentation: [`tracing/`](src/unifiedui_sdk/tracing/README.md) · [`streaming/`](src/unifiedui_sdk/streaming/README.md) · [`agents/`](src/unifiedui_sdk/agents/README.md) · [`tools/`](src/unifiedui_sdk/tools/README.md) · [`core/`](src/unifiedui_sdk/core/README.md)
 
 ---
 
@@ -254,6 +291,12 @@ unifiedui-sdk/
 │   ├── streaming/               # Standardized streaming responses
 │   │   ├── models.py            # StreamMessage, StreamMessageType (22 events)
 │   │   └── writer.py            # StreamWriter (~25 builder methods)
+│   ├── tools/                   # Reusable tool clients
+│   │   └── m365/                # Microsoft 365 Graph API clients
+│   │       ├── core/            # Auth, HTTP, exceptions, pagination
+│   │       ├── global_search/   # Cross-tenant search
+│   │       ├── outlook/         # Email & calendar
+│   │       └── sharepoint/      # Sites, drives, pages, lists, OneNote
 │   └── agents/                  # ReACT Agent Engine
 │       ├── config.py            # ReActAgentConfig, MultiAgentConfig, ToolConfig
 │       ├── engine.py            # ReActAgentEngine (single + multi-agent)
