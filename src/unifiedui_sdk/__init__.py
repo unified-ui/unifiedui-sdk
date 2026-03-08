@@ -2,6 +2,9 @@
 
 from importlib.metadata import version
 
+from unifiedui_sdk.client.client import UnifiedUIClient
+from unifiedui_sdk.client.config import ClientConfig
+
 __version__ = version("unifiedui-sdk")
 
-__all__ = ["__version__"]
+__all__ = ["ClientConfig", "UnifiedUIClient", "__version__"]

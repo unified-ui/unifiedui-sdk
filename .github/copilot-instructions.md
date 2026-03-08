@@ -8,9 +8,9 @@
 
 | Module | Purpose |
 |--------|---------|
-| `unifiedui_sdk.tracing` | Standardized tracing objects; LangChain & LangGraph tracing sniffing |
-| `unifiedui_sdk.streaming` | Standardized streaming responses for unified-ui |
-| `unifiedui_sdk.agents` | ReACT Agent class with an agent engine based on LangChain / LangGraph |
+| `unifiedui_sdk.tracing` | Standardized tracing objects; LangChain, LangGraph & ReACT Agent tracing |
+| `unifiedui_sdk.streaming` | Standardized streaming response protocol (22 SSE event types) |
+| `unifiedui_sdk.agents` | ReACT Agent Engine with single-agent and multi-agent orchestration |
 | `unifiedui_sdk.core` | Shared interfaces, base classes, and utilities |
 
 ## Tech Stack
