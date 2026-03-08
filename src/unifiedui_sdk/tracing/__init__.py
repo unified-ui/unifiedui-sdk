@@ -12,6 +12,7 @@ from unifiedui_sdk.tracing.models import (
     TraceContextType,
     TraceNode,
 )
+from unifiedui_sdk.tracing.react_agent import ReActAgentTracer
 
 __all__ = [
     "BaseTracer",
@@ -19,6 +20,7 @@ __all__ = [
     "NodeDataIO",
     "NodeStatus",
     "NodeType",
+    "ReActAgentTracer",
     "Trace",
     "TraceContextType",
     "TraceNode",

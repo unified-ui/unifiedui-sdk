@@ -6,7 +6,7 @@ import os
 from dotenv import load_dotenv
 from langchain_core.tools import tool
 from langchain_openai import AzureChatOpenAI
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 
 from unifiedui_sdk.tracing import UnifiedUILangchainTracer
 
@@ -84,8 +84,8 @@ def main() -> None:
     # 2. Define tools
     tools = [get_weather, calculate, get_population]
 
-    # 3. Create ReAct agent using LangGraph
-    agent = create_react_agent(llm, tools)
+    # 3. Create ReAct agent using LangChain
+    agent = create_agent(llm, tools)
 
     # 4. Create the tracer
     tracer = UnifiedUILangchainTracer()

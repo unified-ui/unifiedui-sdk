@@ -71,13 +71,134 @@ uv add unifiedui-sdk
 
 ## Quick Start
 
-```python
-import unifiedui_sdk
+### Tracing — Capture Traces from LangChain / LangGraph
 
-print(unifiedui_sdk.__version__)
+```python
+from unifiedui_sdk.tracing import UnifiedUILanggraphTracer
+
+tracer = UnifiedUILanggraphTracer()
+
+# Attach to any LangChain/LangGraph execution
+result = graph.invoke(
+    {"messages": [("human", "Hello")]},
+    config={"callbacks": [tracer]},
+)
+
+# Get the trace as a dict (camelCase JSON for the agent-service API)
+trace_dict = tracer.get_trace_dict()
 ```
 
-> Detailed usage guides for each module will be added to [`docs/`](docs/).
+### Streaming — Build SSE Responses
+
+```python
+from unifiedui_sdk.streaming import StreamWriter, StreamMessageType
+
+writer = StreamWriter()
+
+# Build stream messages for the unified-ui SSE protocol
+yield writer.stream_start()
+yield writer.text_stream("Hello ")
+yield writer.text_stream("world!")
+yield writer.tool_call_start("tc_1", "search", {"query": "test"})
+yield writer.tool_call_end("tc_1", "search", "success", tool_result="Found 3 results")
+yield writer.stream_end()
+```
+
+### Agents — Single-Agent with Tools
+
+```python
+from langchain_openai import ChatOpenAI
+from langchain_core.tools import tool
+
+from unifiedui_sdk.agents import ReActAgentConfig, ReActAgentEngine
+from unifiedui_sdk.tracing import ReActAgentTracer
+
+
+@tool
+def calculator(expression: str) -> str:
+    """Evaluate a math expression."""
+    return str(eval(expression))
+
+
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
+config = ReActAgentConfig(system_prompt="You are a helpful assistant.")
+tracer = ReActAgentTracer()
+
+engine = ReActAgentEngine(
+    config=config, llm=llm, tools=[calculator], tracer=tracer
+)
+
+# Stream agent execution
+async for msg in engine.invoke_stream("What is 42 * 17?"):
+    if msg.type == "TEXT_STREAM":
+        print(msg.content, end="", flush=True)
+    elif msg.type == "TOOL_CALL_START":
+        print(f"\nTool: {msg.config['tool_name']}")
+    elif msg.type == "TOOL_CALL_END":
+        print(f"Result: {msg.config['tool_result']}")
+```
+
+### Agents — Multi-Agent Orchestration
+
+```python
+from unifiedui_sdk.agents import ReActAgentConfig, ReActAgentEngine
+from unifiedui_sdk.agents.config import MultiAgentConfig
+from unifiedui_sdk.tracing import ReActAgentTracer
+
+config = ReActAgentConfig(
+    system_prompt="You are a research assistant.",
+    multi_agent_enabled=True,
+    multi_agent=MultiAgentConfig(
+        max_sub_agents=5,
+        max_parallel_per_step=3,
+    ),
+)
+
+tracer = ReActAgentTracer()
+engine = ReActAgentEngine(config=config, llm=llm, tools=[...], tracer=tracer)
+
+async for msg in engine.invoke_stream("Compare weather in Berlin, Munich, Hamburg"):
+    if msg.type == "PLAN_COMPLETE":
+        print("Plan:", msg.config["plan"]["goal"])
+    elif msg.type == "SUB_AGENT_STREAM":
+        print(msg.content, end="")
+    elif msg.type == "SYNTHESIS_STREAM":
+        print(msg.content, end="")
+
+# Get the full trace
+trace = tracer.get_trace()
+```
+
+### Agents — Tool Loading (OpenAPI + MCP)
+
+```python
+from unifiedui_sdk.agents.config import ToolConfig, ToolType, MCPTransport
+from unifiedui_sdk.agents.tools.loader import load_tools
+
+tool_configs = [
+    ToolConfig(
+        name="PetStore",
+        type=ToolType.OPENAPI_DEFINITION,
+        config={
+            "spec_url": "https://petstore3.swagger.io/api/v3/openapi.json",
+            "base_url": "https://petstore3.swagger.io/api/v3",
+        },
+    ),
+    ToolConfig(
+        name="MCP Weather",
+        type=ToolType.MCP_SERVER,
+        config={
+            "url": "http://localhost:8080/sse",
+            "transport": MCPTransport.SSE,
+        },
+    ),
+]
+
+tools = await load_tools(tool_configs)
+engine = ReActAgentEngine(config=config, llm=llm, tools=tools)
+```
+
+> Detailed module documentation: [`tracing/`](src/unifiedui_sdk/tracing/README.md) · [`streaming/`](src/unifiedui_sdk/streaming/README.md) · [`agents/`](src/unifiedui_sdk/agents/README.md) · [`core/`](src/unifiedui_sdk/core/README.md)
 
 ---
 
@@ -121,16 +242,36 @@ pre-commit install --hook-type commit-msg
 
 ```
 unifiedui-sdk/
-├── src/unifiedui_sdk/      # Main package (src layout)
-│   ├── core/               # Shared interfaces & utilities
-│   ├── tracing/            # Tracing objects & LangChain/LangGraph sniffing
-│   ├── streaming/          # Standardized streaming responses
-│   └── agents/             # ReACT Agent & agent engine
-├── tests/                  # Test suite
-├── docs/                   # Documentation
-├── notebooks/              # Jupyter notebooks
-├── pocs/                   # Proof-of-concept scripts
-└── .github/                # CI workflows & Copilot instructions
+├── src/unifiedui_sdk/           # Main package (src layout)
+│   ├── core/                    # Shared interfaces & utilities
+│   │   └── utils.py             # generate_id, utc_now, safe_str, str_uuid
+│   ├── tracing/                 # Tracing objects & LangChain/LangGraph sniffing
+│   │   ├── models.py            # Trace, TraceNode, NodeData, NodeType, NodeStatus
+│   │   ├── base.py              # BaseTracer (callback handler)
+│   │   ├── langchain.py         # UnifiedUILangchainTracer
+│   │   ├── langgraph.py         # UnifiedUILanggraphTracer
+│   │   └── react_agent.py       # ReActAgentTracer (multi-agent trace support)
+│   ├── streaming/               # Standardized streaming responses
+│   │   ├── models.py            # StreamMessage, StreamMessageType (22 events)
+│   │   └── writer.py            # StreamWriter (~25 builder methods)
+│   └── agents/                  # ReACT Agent Engine
+│       ├── config.py            # ReActAgentConfig, MultiAgentConfig, ToolConfig
+│       ├── engine.py            # ReActAgentEngine (single + multi-agent)
+│       ├── single.py            # Single-agent ReACT executor
+│       ├── prompts.py           # System prompt builder
+│       ├── tools/               # Tool integrations
+│       │   ├── openapi.py       # OpenAPI 3.x → LangChain tools
+│       │   ├── mcp.py           # MCP Server → LangChain tools
+│       │   └── loader.py        # Parallel tool loader
+│       └── multi/               # Multi-agent orchestration
+│           ├── planner.py       # LLM-based execution plan generator
+│           ├── executor.py      # Parallel sub-agent executor
+│           ├── synthesizer.py   # Result synthesizer
+│           └── orchestrator.py  # Full pipeline coordinator
+├── tests/                       # Test suite (327 tests)
+├── docs/                        # Documentation
+├── pocs/                        # Proof-of-concept scripts
+└── .github/                     # CI workflows & Copilot instructions
 ```
 
 ---

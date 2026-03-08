@@ -10,7 +10,7 @@ class UnifiedUILanggraphTracer(BaseTracer):
     that represent graph bookkeeping and do not carry meaningful trace data.
 
     Compatible with:
-        - ``create_react_agent`` (prebuilt agents from ``langgraph.prebuilt``)
+        - ``create_agent`` (from ``langchain.agents``)
         - Compiled ``StateGraph`` graphs
         - Any LangGraph graph that accepts ``BaseCallbackHandler`` callbacks
 

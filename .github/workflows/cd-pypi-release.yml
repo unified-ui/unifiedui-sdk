@@ -1,0 +1,145 @@
+name: CD — PyPI Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (don't publish)"
+        required: false
+        default: "false"
+        type: boolean
+
+permissions:
+  contents: write  # For creating tags
+  id-token: write  # For PyPI trusted publishing
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+    # Prevent duplicate runs from merge commits
+    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[skip ci]')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for tags
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Calculate next version
+        id: version
+        run: |
+          # Read floor version from pyproject.toml
+          FLOOR=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          echo "floor=$FLOOR" >> $GITHUB_OUTPUT
+
+          # Query PyPI for current version
+          CURRENT=$(curl -s https://pypi.org/pypi/unifiedui-sdk/json 2>/dev/null | python -c "import sys, json; d=json.load(sys.stdin); print(d['info']['version'])" 2>/dev/null || echo "")
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+
+          # Calculate next version using Python
+          NEXT=$(python << EOF
+          import re
+
+          floor = "$FLOOR"
+          current = "$CURRENT"
+
+          def parse(v):
+              m = re.match(r'(\d+)\.(\d+)\.(\d+)', v)
+              return (int(m.group(1)), int(m.group(2)), int(m.group(3))) if m else (0, 0, 0)
+
+          if not current:
+              next_ver = floor
+          else:
+              f = parse(floor)
+              c = parse(current)
+              if (f[0], f[1]) > (c[0], c[1]):
+                  next_ver = floor
+              else:
+                  next_ver = f"{c[0]}.{c[1]}.{c[2] + 1}"
+
+          print(next_ver)
+          EOF
+          )
+          echo "version=$NEXT" >> $GITHUB_OUTPUT
+
+          echo "📊 Version Calculation:"
+          echo "   Floor (pyproject.toml): $FLOOR"
+          echo "   Current (PyPI): ${CURRENT:-'not published'}"
+          echo "   Next: $NEXT"
+
+      - name: Check if version already exists
+        id: check
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if git tag -l "v$VERSION" | grep -q .; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Tag v$VERSION already exists — skipping release"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "✅ Tag v$VERSION will be created"
+          fi
+
+      - name: Update version in pyproject.toml
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" pyproject.toml
+          echo "📝 Updated pyproject.toml to version $VERSION"
+          grep "^version" pyproject.toml
+
+      - name: Build package
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          uv build
+          echo "📦 Built package:"
+          ls -la dist/
+
+      - name: Create Git tag
+        if: steps.check.outputs.exists == 'false' && github.event.inputs.dry_run != 'true'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+          echo "🏷️ Created and pushed tag v$VERSION"
+
+      - name: Publish to PyPI
+        if: steps.check.outputs.exists == 'false' && github.event.inputs.dry_run != 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # Uses trusted publishing (OIDC) — no API token needed
+        # Configure at: https://pypi.org/manage/project/unifiedui-sdk/settings/publishing/
+
+      - name: Summary
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DRY_RUN="${{ github.event.inputs.dry_run || 'false' }}"
+          EXISTS="${{ steps.check.outputs.exists }}"
+
+          echo "## 🚀 Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Floor Version | \`${{ steps.version.outputs.floor }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Previous Version | \`${{ steps.version.outputs.current || 'N/A' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| New Version | \`$VERSION\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tag Exists | $EXISTS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dry Run | $DRY_RUN |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "$EXISTS" == "true" ]]; then
+            echo "⚠️ **Skipped**: Tag already exists" >> $GITHUB_STEP_SUMMARY
+          elif [[ "$DRY_RUN" == "true" ]]; then
+            echo "🧪 **Dry Run**: No changes made" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ **Released**: [v$VERSION on PyPI](https://pypi.org/project/unifiedui-sdk/$VERSION/)" >> $GITHUB_STEP_SUMMARY
+          fi
