@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import html as html_lib
 import re
+from typing import Any
 
 
-def extract_webparts_html(webparts: list[dict]) -> str:
+def extract_webparts_html(webparts: list[dict[str, Any]]) -> str:
     """Extract readable HTML from a list of web parts."""
     fragments: list[str] = []
 
@@ -19,12 +20,8 @@ def extract_webparts_html(webparts: list[dict]) -> str:
                 fragments.append(inner_html)
             continue
 
-        server_processed = (webpart.get("data") or {}).get(
-            "serverProcessedContent"
-        ) or {}
-        searchable_plain_texts = (
-            server_processed.get("searchablePlainTexts") or []
-        )
+        server_processed = (webpart.get("data") or {}).get("serverProcessedContent") or {}
+        searchable_plain_texts = server_processed.get("searchablePlainTexts") or []
         for entry in searchable_plain_texts:
             value = entry.get("value", "")
             if value:
@@ -54,7 +51,7 @@ def parse_site_url(url: str) -> tuple[str, str]:
     return host, path
 
 
-def get_folder_path(item: dict) -> str:
+def get_folder_path(item: dict[str, Any]) -> str:
     """Extract folder path from a drive item."""
     parent = item.get("parentReference") or {}
     path = parent.get("path") or ""

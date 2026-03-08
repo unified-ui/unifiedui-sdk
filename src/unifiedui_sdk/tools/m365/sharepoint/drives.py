@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Generator
+from typing import TYPE_CHECKING, Any
 
 import requests
 
@@ -19,6 +19,10 @@ from unifiedui_sdk.tools.m365.sharepoint.models import (
     DriveSearchQuery,
     UploadFile,
 )
+
+if TYPE_CHECKING:
+    import builtins
+    from collections.abc import Generator
 
 
 class DriveService:
@@ -49,9 +53,7 @@ class DriveService:
         if select_fields:
             params = {"$select": ",".join(select_fields)}
 
-        data = self._http.request(
-            "GET", f"/sites/{site_id}/drives", params=params
-        )
+        data = self._http.request("GET", f"/sites/{site_id}/drives", params=params)
         return build_paged_result(data, top=0, skip=0)
 
     @requires_capability(SharePointCapability.DRIVES_READ)
@@ -59,16 +61,14 @@ class DriveService:
         self,
         site_id: str,
         drive_id: str,
-        select_fields: list[str] | None = None,
-    ) -> dict:
+        select_fields: builtins.list[str] | None = None,
+    ) -> dict[str, Any]:
         """Get a specific drive."""
         params = None
         if select_fields:
             params = {"$select": ",".join(select_fields)}
 
-        return self._http.request(
-            "GET", f"/sites/{site_id}/drives/{drive_id}", params=params
-        )
+        return self._http.request("GET", f"/sites/{site_id}/drives/{drive_id}", params=params)
 
     @requires_capability(SharePointCapability.DRIVES_READ)
     def list_items(
@@ -76,7 +76,7 @@ class DriveService:
         site_id: str,
         drive_id: str,
         query: DriveItemsQuery | None = None,
-    ) -> list[dict]:
+    ) -> builtins.list[dict[str, Any]]:
         """List items in a drive."""
         current = query or DriveItemsQuery()
         return self._list_folder(
@@ -93,11 +93,11 @@ class DriveService:
         site_id: str,
         drive_id: str,
         query: DriveItemsQuery | None = None,
-    ) -> Generator[list[dict], None, None]:
+    ) -> Generator[builtins.list[dict[str, Any]]]:
         """Yield batches of drive items."""
         current = query or DriveItemsQuery()
         batch_size = current.batch_size or 200
-        batch: list[dict] = []
+        batch: list[dict[str, Any]] = []
 
         for item in self._walk(
             site_id,
@@ -120,8 +120,8 @@ class DriveService:
         site_id: str,
         drive_id: str,
         item_id: str,
-        select_fields: list[str] | None = None,
-    ) -> dict:
+        select_fields: builtins.list[str] | None = None,
+    ) -> dict[str, Any]:
         """Get a single drive item by ID."""
         params = None
         if select_fields:
@@ -139,8 +139,8 @@ class DriveService:
         site_id: str,
         drive_id: str,
         file_path: str,
-        select_fields: list[str] | None = None,
-    ) -> dict:
+        select_fields: builtins.list[str] | None = None,
+    ) -> dict[str, Any]:
         """Get a drive item by path relative to root."""
         path = file_path.strip("/")
         params = None
@@ -170,9 +170,7 @@ class DriveService:
     ) -> bytes:
         """Download a file by path relative to root."""
         path = file_path.strip("/")
-        return self._http.request_raw(
-            "GET", f"/sites/{site_id}/drives/{drive_id}/root:/{path}:/content"
-        )
+        return self._http.request_raw("GET", f"/sites/{site_id}/drives/{drive_id}/root:/{path}:/content")
 
     @requires_capability(SharePointCapability.DRIVES_READ)
     def search(
@@ -184,7 +182,7 @@ class DriveService:
         """Search for items within a drive."""
         current = query or DriveSearchQuery()
 
-        params: dict = {"$top": current.top}
+        params: dict[str, Any] = {"$top": current.top}
         if current.skip:
             params["$skip"] = current.skip
         if current.select_fields:
@@ -203,22 +201,21 @@ class DriveService:
         site_id: str,
         drive_id: str,
         query: DriveSearchQuery | None = None,
-    ) -> list[dict]:
+    ) -> builtins.list[dict[str, Any]]:
         """Search within a drive, auto-following pagination."""
         current = query or DriveSearchQuery()
 
-        params: dict = {"$top": current.top}
+        params: dict[str, Any] = {"$top": current.top}
         if current.select_fields:
             params["$select"] = ",".join(current.select_fields)
 
         data = self._http.request(
             "GET",
-            f"/sites/{site_id}/drives/{drive_id}"
-            f"/root/search(q='{current.query}')",
+            f"/sites/{site_id}/drives/{drive_id}/root/search(q='{current.query}')",
             params=params,
         )
 
-        items = data.get("value", [])
+        items: list[dict[str, Any]] = data.get("value", [])
         while "@odata.nextLink" in data:
             data = self._http.request_url("GET", data["@odata.nextLink"])
             items.extend(data.get("value", []))
@@ -231,7 +228,7 @@ class DriveService:
         site_id: str,
         drive_id: str,
         query: DeltaQuery | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get incremental changes (delta sync)."""
         current = query or DeltaQuery()
 
@@ -255,7 +252,7 @@ class DriveService:
         drive_id: str,
         folder_path: str,
         upload_file: UploadFile,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Upload a small file (<=4 MB)."""
         file_name = upload_file.file_path.replace("\\", "/").split("/")[-1]
         item_path = self._build_item_path(folder_path, file_name)
@@ -277,20 +274,17 @@ class DriveService:
         folder_path: str,
         upload_file: UploadFile,
         chunk_size: int = 10 * 1024 * 1024,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Upload a large file via upload session."""
         file_name = upload_file.file_path.replace("\\", "/").split("/")[-1]
         item_path = self._build_item_path(folder_path, file_name)
 
         session = self._http.request(
             "POST",
-            f"/sites/{site_id}/drives/{drive_id}/{item_path}:"
-            "/createUploadSession",
+            f"/sites/{site_id}/drives/{drive_id}/{item_path}:/createUploadSession",
             json_body={
                 "item": {
-                    "@microsoft.graph.conflictBehavior": (
-                        upload_file.conflict_behavior
-                    ),
+                    "@microsoft.graph.conflictBehavior": (upload_file.conflict_behavior),
                     "name": file_name,
                 }
             },
@@ -300,7 +294,7 @@ class DriveService:
         data = upload_file.content
         total = len(data)
         start = 0
-        result: dict = {}
+        result: dict[str, Any] = {}
 
         while start < total:
             end = min(start + chunk_size, total)
@@ -341,7 +335,7 @@ class DriveService:
         drive_id: str,
         parent_path: str,
         folder_name: str,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Create a folder in the drive."""
         path = parent_path.strip("/")
         parent = (
@@ -368,9 +362,7 @@ class DriveService:
         item_id: str,
     ) -> None:
         """Delete a drive item."""
-        self._http.request(
-            "DELETE", f"/sites/{site_id}/drives/{drive_id}/items/{item_id}"
-        )
+        self._http.request("DELETE", f"/sites/{site_id}/drives/{drive_id}/items/{item_id}")
 
     @requires_capability(SharePointCapability.DRIVES_WRITE)
     def copy(
@@ -380,9 +372,9 @@ class DriveService:
         item_id: str,
         target_parent_id: str,
         new_name: str | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Copy a drive item."""
-        body: dict = {"parentReference": {"id": target_parent_id}}
+        body: dict[str, Any] = {"parentReference": {"id": target_parent_id}}
         if new_name:
             body["name"] = new_name
 
@@ -400,9 +392,9 @@ class DriveService:
         item_id: str,
         target_parent_id: str,
         new_name: str | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Move a drive item."""
-        body: dict = {"parentReference": {"id": target_parent_id}}
+        body: dict[str, Any] = {"parentReference": {"id": target_parent_id}}
         if new_name:
             body["name"] = new_name
 
@@ -417,9 +409,9 @@ class DriveService:
         site_id: str,
         drive_id: str,
         folder_path: str = "",
-        select_fields: list[str] | None = None,
+        select_fields: builtins.list[str] | None = None,
         recursive: bool = False,
-    ) -> list[dict]:
+    ) -> builtins.list[dict[str, Any]]:
         """List items in a folder, optionally recursive."""
         return list(
             self._walk(
@@ -436,25 +428,21 @@ class DriveService:
         site_id: str,
         drive_id: str,
         folder_path: str = "",
-        select_fields: list[str] | None = None,
+        select_fields: builtins.list[str] | None = None,
         recursive: bool = False,
-    ) -> Generator[dict, None, None]:
+    ) -> Generator[dict[str, Any]]:
         """Walk a folder structure and yield items."""
         base = f"/sites/{site_id}/drives/{drive_id}"
         path = folder_path.strip("/")
 
-        endpoint = (
-            f"{base}/root:/{path}:/children"
-            if path
-            else f"{base}/root/children"
-        )
+        endpoint = f"{base}/root:/{path}:/children" if path else f"{base}/root/children"
 
         params = None
         if select_fields:
             params = {"$select": ",".join(select_fields)}
 
         data = self._http.request("GET", endpoint, params=params)
-        items: list[dict] = data.get("value", [])
+        items: list[dict[str, Any]] = data.get("value", [])
 
         while "@odata.nextLink" in data:
             data = self._http.request_url("GET", data["@odata.nextLink"])

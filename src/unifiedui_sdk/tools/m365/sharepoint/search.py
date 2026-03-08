@@ -1,5 +1,7 @@
 """SharePoint-filtered search service using M365 Search API."""
 
+from typing import Any
+
 from unifiedui_sdk.tools.m365.core.http import GraphRequestHandler
 from unifiedui_sdk.tools.m365.core.models import PagedResult
 from unifiedui_sdk.tools.m365.sharepoint.capabilities import (
@@ -34,7 +36,7 @@ class SearchService:
         current = query or SearchQuery()
         entity_types = current.entity_types or _DEFAULT_ENTITY_TYPES
 
-        request_body: dict = {
+        request_body: dict[str, Any] = {
             "entityTypes": entity_types,
             "query": {"queryString": current.query},
             "from": current.skip,
@@ -44,15 +46,11 @@ class SearchService:
         if current.select_fields:
             request_body["fields"] = current.select_fields
         if current.sort_by:
-            request_body["sortProperties"] = [
-                {"name": current.sort_by, "isDescending": True}
-            ]
+            request_body["sortProperties"] = [{"name": current.sort_by, "isDescending": True}]
         if current.region:
             request_body["region"] = current.region
 
-        data = self._http.request(
-            "POST", "/search/query", json_body={"requests": [request_body]}
-        )
+        data = self._http.request("POST", "/search/query", json_body={"requests": [request_body]})
 
         responses = data.get("value", [])
         if not responses:
@@ -66,11 +64,7 @@ class SearchService:
 
         containers = responses[0].get("hitsContainers", [])
         total = containers[0].get("total", 0) if containers else 0
-        more = (
-            containers[0].get("moreResultsAvailable", False)
-            if containers
-            else False
-        )
+        more = containers[0].get("moreResultsAvailable", False) if containers else False
         return PagedResult(
             value=containers,
             top=current.top,

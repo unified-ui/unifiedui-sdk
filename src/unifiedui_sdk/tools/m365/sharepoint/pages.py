@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from unifiedui_sdk.tools.m365.core.http import GraphRequestHandler
+from typing import TYPE_CHECKING, Any
+
 from unifiedui_sdk.tools.m365.core.models import PagedResult, build_paged_result
 from unifiedui_sdk.tools.m365.sharepoint.capabilities import (
     SharePointCapability,
@@ -13,6 +14,11 @@ from unifiedui_sdk.tools.m365.sharepoint.formatters import (
     html_to_plain_text,
 )
 from unifiedui_sdk.tools.m365.sharepoint.models import PagesQuery
+
+if TYPE_CHECKING:
+    import builtins
+
+    from unifiedui_sdk.tools.m365.core.http import GraphRequestHandler
 
 
 class PageService:
@@ -41,7 +47,7 @@ class PageService:
         """List site pages."""
         current = query or PagesQuery()
 
-        params: dict = {"$top": current.top}
+        params: dict[str, Any] = {"$top": current.top}
         if current.skip:
             params["$skip"] = current.skip
         if current.select_fields:
@@ -51,9 +57,7 @@ class PageService:
         if current.orderby:
             params["$orderby"] = current.orderby
 
-        data = self._http.request(
-            "GET", f"/sites/{site_id}/pages", params=params
-        )
+        data = self._http.request("GET", f"/sites/{site_id}/pages", params=params)
         return build_paged_result(data, current.top, current.skip)
 
     @requires_capability(SharePointCapability.PAGES_READ)
@@ -61,11 +65,11 @@ class PageService:
         self,
         site_id: str,
         query: PagesQuery | None = None,
-    ) -> list[dict]:
+    ) -> builtins.list[dict[str, Any]]:
         """List all site pages, auto-following pagination."""
         current = query or PagesQuery()
 
-        params: dict = {"$top": current.top}
+        params: dict[str, Any] = {"$top": current.top}
         if current.select_fields:
             params["$select"] = ",".join(current.select_fields)
         if current.filter:
@@ -73,11 +77,9 @@ class PageService:
         if current.orderby:
             params["$orderby"] = current.orderby
 
-        data = self._http.request(
-            "GET", f"/sites/{site_id}/pages", params=params
-        )
+        data = self._http.request("GET", f"/sites/{site_id}/pages", params=params)
 
-        items = data.get("value", [])
+        items: list[dict[str, Any]] = data.get("value", [])
         while "@odata.nextLink" in data:
             data = self._http.request_url("GET", data["@odata.nextLink"])
             items.extend(data.get("value", []))
@@ -89,26 +91,24 @@ class PageService:
         self,
         site_id: str,
         page_id: str,
-        select_fields: list[str] | None = None,
-    ) -> dict:
+        select_fields: builtins.list[str] | None = None,
+    ) -> dict[str, Any]:
         """Get a page by ID."""
         params = None
         if select_fields:
             params = {"$select": ",".join(select_fields)}
 
-        return self._http.request(
-            "GET", f"/sites/{site_id}/pages/{page_id}", params=params
-        )
+        return self._http.request("GET", f"/sites/{site_id}/pages/{page_id}", params=params)
 
     @requires_capability(SharePointCapability.PAGES_READ)
-    def get_webparts(self, site_id: str, page_id: str) -> list[dict]:
+    def get_webparts(self, site_id: str, page_id: str) -> builtins.list[dict[str, Any]]:
         """Get all web parts of a page."""
         data = self._http.request(
             "GET",
-            f"/sites/{site_id}/pages/{page_id}/microsoft.graph.sitePage"
-            "/webParts",
+            f"/sites/{site_id}/pages/{page_id}/microsoft.graph.sitePage/webParts",
         )
-        return data.get("value", [])
+        result: list[dict[str, Any]] = data.get("value", [])
+        return result
 
     @requires_capability(SharePointCapability.PAGES_READ)
     def get_content(self, site_id: str, page_id: str) -> str:

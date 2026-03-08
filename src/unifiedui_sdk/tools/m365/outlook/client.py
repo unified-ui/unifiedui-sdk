@@ -26,9 +26,7 @@ class OutlookAPIClient:
         self._http = GraphRequestHandler(auth)
 
         self._capabilities: set[OutlookCapability] = set(
-            capabilities
-            if capabilities is not None
-            else list(OutlookCapability)
+            capabilities if capabilities is not None else list(OutlookCapability)
         )
 
         self.messages = MessageService(self._http, self._capabilities)

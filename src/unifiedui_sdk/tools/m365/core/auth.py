@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import time
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, ClassVar, Protocol, runtime_checkable
 
 from msal import ConfidentialClientApplication
 
@@ -14,13 +14,15 @@ from unifiedui_sdk.tools.m365.core.exceptions import M365AuthError
 class TokenCredential(Protocol):
     """Protocol matching ``azure.identity`` credentials."""
 
-    def get_token(self, *scopes: str, **kwargs: Any) -> Any: ...
+    def get_token(self, *scopes: str, **kwargs: Any) -> Any:
+        """Acquire a token for the given scopes."""
+        ...
 
 
 class GraphAuthProvider:
     """Handle Microsoft Graph authentication with token caching."""
 
-    _SCOPES = ["https://graph.microsoft.com/.default"]
+    _SCOPES: ClassVar[list[str]] = ["https://graph.microsoft.com/.default"]
 
     def __init__(
         self,
@@ -39,22 +41,18 @@ class GraphAuthProvider:
         self._access_token: str | None = None
         self._token_expires_at: float = 0
 
+        self._credential: TokenCredential | None = None
+        self._msal_app: ConfidentialClientApplication | None = None
+
         if credential is not None:
             if not isinstance(credential, TokenCredential):
-                msg = (
-                    "credential must implement the TokenCredential "
-                    "protocol (.get_token())."
-                )
+                msg = "credential must implement the TokenCredential protocol (.get_token())."
                 raise M365AuthError(msg)
             self._credential = credential
-            self._msal_app: ConfidentialClientApplication | None = None
             return
 
         if not tenant_id or not client_id:
-            msg = (
-                "tenant_id and client_id are required when "
-                "not using an Azure credential."
-            )
+            msg = "tenant_id and client_id are required when not using an Azure credential."
             raise M365AuthError(msg)
 
         msal_credential = self._build_msal_credential(
@@ -63,7 +61,6 @@ class GraphAuthProvider:
             private_key_path,
         )
 
-        self._credential = None
         self._msal_app = ConfidentialClientApplication(
             client_id=client_id,
             client_credential=msal_credential,
@@ -88,10 +85,7 @@ class GraphAuthProvider:
                 "private_key": private_key,
             }
 
-        msg = (
-            "Provide either 'client_secret' or both "
-            "'certificate_thumbprint' and 'private_key_path'."
-        )
+        msg = "Provide either 'client_secret' or both 'certificate_thumbprint' and 'private_key_path'."
         raise M365AuthError(msg)
 
     def _is_token_expired(self) -> bool:

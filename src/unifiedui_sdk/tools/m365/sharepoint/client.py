@@ -30,9 +30,7 @@ class SharePointAPIClient:
         self._http = GraphRequestHandler(auth)
 
         self._capabilities: set[SharePointCapability] = set(
-            capabilities
-            if capabilities is not None
-            else list(SharePointCapability)
+            capabilities if capabilities is not None else list(SharePointCapability)
         )
 
         self.sites = SiteService(self._http, self._capabilities)

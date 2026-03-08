@@ -1,5 +1,7 @@
 """Calendar service for Outlook API operations."""
 
+from typing import Any
+
 from unifiedui_sdk.tools.m365.core.http import GraphRequestHandler
 from unifiedui_sdk.tools.m365.core.models import PagedResult, build_paged_result
 from unifiedui_sdk.tools.m365.outlook.capabilities import (
@@ -32,12 +34,9 @@ class _CalendarOperations:
     @requires_capability(OutlookCapability.CALENDAR_READ)
     def list_events(self, base: str, query: ListEventsQuery) -> PagedResult:
         """List events in a time range using calendarView."""
-        if query.calendar_id:
-            path = f"{base}/calendars/{query.calendar_id}/calendarView"
-        else:
-            path = f"{base}/calendarView"
+        path = f"{base}/calendars/{query.calendar_id}/calendarView" if query.calendar_id else f"{base}/calendarView"
 
-        params: dict = {
+        params: dict[str, Any] = {
             "startDateTime": query.start.isoformat(),
             "endDateTime": query.end.isoformat(),
             "$top": query.top,
@@ -57,18 +56,16 @@ class _CalendarOperations:
         base: str,
         event_id: str,
         select_fields: list[str] | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Retrieve a single event by ID."""
         params = None
         if select_fields:
             params = {"$select": ",".join(select_fields)}
 
-        return self._http.request(
-            "GET", f"{base}/events/{event_id}", params=params
-        )
+        return self._http.request("GET", f"{base}/events/{event_id}", params=params)
 
     @requires_capability(OutlookCapability.CALENDAR_READ)
-    def get_free_busy(self, base: str, query: FreeBusyQuery) -> list[dict]:
+    def get_free_busy(self, base: str, query: FreeBusyQuery) -> list[dict[str, Any]]:
         """Check availability of one or more people."""
         body = {
             "schedules": query.schedules,
@@ -83,17 +80,14 @@ class _CalendarOperations:
             "availabilityViewInterval": query.availability_view_interval,
         }
 
-        data = self._http.request(
-            "POST", f"{base}/calendar/getSchedule", json_body=body
-        )
-        return data.get("value", [])
+        data = self._http.request("POST", f"{base}/calendar/getSchedule", json_body=body)
+        result: list[dict[str, Any]] = data.get("value", [])
+        return result
 
     @requires_capability(OutlookCapability.CALENDAR_WRITE)
-    def create_event(self, base: str, event: CreateEvent) -> dict:
+    def create_event(self, base: str, event: CreateEvent) -> dict[str, Any]:
         """Create a new calendar event."""
-        return self._http.request(
-            "POST", f"{base}/events", json_body=build_event_body(event)
-        )
+        return self._http.request("POST", f"{base}/events", json_body=build_event_body(event))
 
     @requires_capability(OutlookCapability.CALENDAR_WRITE)
     def update_event(
@@ -101,7 +95,7 @@ class _CalendarOperations:
         base: str,
         event_id: str,
         event: UpdateEvent,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Update an existing event (partial)."""
         return self._http.request(
             "PATCH",
@@ -110,7 +104,7 @@ class _CalendarOperations:
         )
 
     @requires_capability(OutlookCapability.CALENDAR_WRITE)
-    def delete_event(self, base: str, event_id: str) -> dict:
+    def delete_event(self, base: str, event_id: str) -> dict[str, Any]:
         """Delete a calendar event."""
         return self._http.request("DELETE", f"{base}/events/{event_id}")
 
@@ -130,23 +124,23 @@ class _MeCalendarService:
         self,
         event_id: str,
         select_fields: list[str] | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get an event by ID for the current user."""
         return self._ops.get_event("/me", event_id, select_fields)
 
-    def get_free_busy(self, query: FreeBusyQuery) -> list[dict]:
+    def get_free_busy(self, query: FreeBusyQuery) -> list[dict[str, Any]]:
         """Check availability for the current user."""
         return self._ops.get_free_busy("/me", query)
 
-    def create_event(self, event: CreateEvent) -> dict:
+    def create_event(self, event: CreateEvent) -> dict[str, Any]:
         """Create an event for the current user."""
         return self._ops.create_event("/me", event)
 
-    def update_event(self, event_id: str, event: UpdateEvent) -> dict:
+    def update_event(self, event_id: str, event: UpdateEvent) -> dict[str, Any]:
         """Update an event for the current user."""
         return self._ops.update_event("/me", event_id, event)
 
-    def delete_event(self, event_id: str) -> dict:
+    def delete_event(self, event_id: str) -> dict[str, Any]:
         """Delete an event for the current user."""
         return self._ops.delete_event("/me", event_id)
 
@@ -178,15 +172,15 @@ class CalendarService:
         user: str,
         event_id: str,
         select_fields: list[str] | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Get an event by ID for a specific user."""
         return self._ops.get_event(f"/users/{user}", event_id, select_fields)
 
-    def get_free_busy(self, user: str, query: FreeBusyQuery) -> list[dict]:
+    def get_free_busy(self, user: str, query: FreeBusyQuery) -> list[dict[str, Any]]:
         """Check availability for a specific user."""
         return self._ops.get_free_busy(f"/users/{user}", query)
 
-    def create_event(self, user: str, event: CreateEvent) -> dict:
+    def create_event(self, user: str, event: CreateEvent) -> dict[str, Any]:
         """Create an event for a specific user."""
         return self._ops.create_event(f"/users/{user}", event)
 
@@ -195,11 +189,11 @@ class CalendarService:
         user: str,
         event_id: str,
         event: UpdateEvent,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Update an event for a specific user."""
         return self._ops.update_event(f"/users/{user}", event_id, event)
 
-    def delete_event(self, user: str, event_id: str) -> dict:
+    def delete_event(self, user: str, event_id: str) -> dict[str, Any]:
         """Delete an event for a specific user."""
         return self._ops.delete_event(f"/users/{user}", event_id)
 

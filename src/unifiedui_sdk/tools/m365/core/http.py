@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
 import requests
 
-from unifiedui_sdk.tools.m365.core.auth import GraphAuthProvider
 from unifiedui_sdk.tools.m365.core.exceptions import M365APIError
+
+if TYPE_CHECKING:
+    from unifiedui_sdk.tools.m365.core.auth import GraphAuthProvider
 
 GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0"
 
@@ -30,7 +34,7 @@ class GraphRequestHandler:
         error_data: dict[str, str] = {}
         try:
             error_data = response.json().get("error", {})
-        except Exception:  # noqa: BLE001
+        except Exception:
             error_data = {}
 
         raise M365APIError(
@@ -43,8 +47,8 @@ class GraphRequestHandler:
         self,
         method: str,
         url: str,
-        params: dict | None = None,
-        json_body: dict | None = None,
+        params: dict[str, Any] | None = None,
+        json_body: dict[str, Any] | None = None,
         extra_headers: dict[str, str] | None = None,
         timeout: int = 30,
     ) -> requests.Response:
@@ -63,21 +67,22 @@ class GraphRequestHandler:
         return response
 
     @staticmethod
-    def _parse_json_response(response: requests.Response) -> dict:
+    def _parse_json_response(response: requests.Response) -> dict[str, Any]:
         """Parse JSON response and normalize empty responses to dict."""
         if response.status_code == 204 or not response.content:
             return {}
-        return response.json()
+        result: dict[str, Any] = response.json()
+        return result
 
     def request(
         self,
         method: str,
         path: str,
-        params: dict | None = None,
-        json_body: dict | None = None,
+        params: dict[str, Any] | None = None,
+        json_body: dict[str, Any] | None = None,
         extra_headers: dict[str, str] | None = None,
         timeout: int = 30,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Execute an authenticated request to a Graph path."""
         url = f"{GRAPH_BASE_URL}{path}"
         response = self._send(
@@ -94,11 +99,11 @@ class GraphRequestHandler:
         self,
         method: str,
         url: str,
-        params: dict | None = None,
-        json_body: dict | None = None,
+        params: dict[str, Any] | None = None,
+        json_body: dict[str, Any] | None = None,
         extra_headers: dict[str, str] | None = None,
         timeout: int = 30,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Execute an authenticated request against full URL."""
         response = self._send(
             method=method,
@@ -114,7 +119,7 @@ class GraphRequestHandler:
         self,
         method: str,
         path: str,
-        params: dict | None = None,
+        params: dict[str, Any] | None = None,
         extra_headers: dict[str, str] | None = None,
         timeout: int = 60,
     ) -> bytes:
@@ -135,7 +140,7 @@ class GraphRequestHandler:
         data: bytes,
         content_type: str = "application/octet-stream",
         timeout: int = 120,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Upload raw bytes via HTTP PUT."""
         headers = self._auth.get_headers({"Content-Type": content_type})
 
@@ -151,7 +156,8 @@ class GraphRequestHandler:
         if not response.content:
             return {}
 
-        return response.json()
+        result: dict[str, Any] = response.json()
+        return result
 
 
 __all__ = ["GRAPH_BASE_URL", "GraphRequestHandler"]

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass(kw_only=True)
@@ -81,14 +82,14 @@ class ListItemsQuery(PaginationQuery):
 class CreateListItem:
     """Create a new list item."""
 
-    fields: dict = field(default_factory=dict)
+    fields: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(kw_only=True)
 class UpdateListItem:
     """Update an existing list item."""
 
-    fields: dict = field(default_factory=dict)
+    fields: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(kw_only=True)

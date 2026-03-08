@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 @dataclass(kw_only=True)
@@ -104,7 +107,7 @@ class CreateEvent:
     location: EventLocation | None = None
     is_online: bool = False
     reminder_minutes: int = 15
-    recurrence: dict | None = None
+    recurrence: dict[str, Any] | None = None
 
 
 @dataclass(kw_only=True)

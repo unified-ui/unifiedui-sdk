@@ -2,18 +2,26 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from enum import Enum
+from enum import StrEnum
 from functools import wraps
-from typing import ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, ParamSpec, Protocol, TypeVar
 
 from unifiedui_sdk.tools.m365.outlook.exceptions import OutlookCapabilityError
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 P = ParamSpec("P")
 R = TypeVar("R")
 
 
-class OutlookCapability(str, Enum):
+class _HasCapabilities(Protocol):
+    """Protocol for objects with _capabilities attribute."""
+
+    _capabilities: set[OutlookCapability]
+
+
+class OutlookCapability(StrEnum):
     """Controls which features are available on the client."""
 
     MAIL_READ = "mail_read"
@@ -31,7 +39,7 @@ def requires_capability(
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
-            instance = args[0]
+            instance: Any = args[0]
             enabled: set[OutlookCapability] = instance._capabilities
             for capability in capabilities:
                 if capability not in enabled:

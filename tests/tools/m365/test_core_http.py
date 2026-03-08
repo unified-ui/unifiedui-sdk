@@ -22,7 +22,7 @@ class MockResponse:
         """Initialize mock response."""
         self._json_data = json_data or {}
         self.status_code = status_code
-        self.content = content or b'{}'
+        self.content = content or b"{}"
         self.ok = status_code < 400
         self.text = str(json_data) if json_data else ""
 
@@ -69,9 +69,7 @@ class TestGraphRequestHandler:
         with patch("requests.request") as mock_request:
             mock_request.return_value = MockResponse({"value": []})
 
-            handler.request(
-                "GET", "/me/messages", params={"$top": 10, "$select": "id"}
-            )
+            handler.request("GET", "/me/messages", params={"$top": 10, "$select": "id"})
 
             mock_request.assert_called_once()
             call_kwargs = mock_request.call_args.kwargs
@@ -92,9 +90,7 @@ class TestGraphRequestHandler:
             call_kwargs = mock_request.call_args.kwargs
             assert call_kwargs["json"] == {"subject": "Test"}
 
-    def test_request_includes_auth_header(
-        self, handler: GraphRequestHandler
-    ) -> None:
+    def test_request_includes_auth_header(self, handler: GraphRequestHandler) -> None:
         """Include Authorization header in requests."""
         with patch("requests.request") as mock_request:
             mock_request.return_value = MockResponse({})
@@ -117,28 +113,20 @@ class TestGraphRequestHandler:
             call_args = mock_request.call_args.args
             assert call_args[1] == full_url
 
-    def test_request_raw_returns_bytes(
-        self, handler: GraphRequestHandler
-    ) -> None:
+    def test_request_raw_returns_bytes(self, handler: GraphRequestHandler) -> None:
         """Return raw bytes from request."""
         with patch("requests.request") as mock_request:
-            mock_request.return_value = MockResponse(
-                content=b"file content here"
-            )
+            mock_request.return_value = MockResponse(content=b"file content here")
 
             result = handler.request_raw("GET", "/me/drive/items/id/content")
 
             assert result == b"file content here"
 
-    def test_request_error_handling(
-        self, handler: GraphRequestHandler
-    ) -> None:
+    def test_request_error_handling(self, handler: GraphRequestHandler) -> None:
         """Raise M365APIError on HTTP error."""
         with patch("requests.request") as mock_request:
             mock_request.return_value = MockResponse(
-                json_data={
-                    "error": {"code": "NotFound", "message": "Not found"}
-                },
+                json_data={"error": {"code": "NotFound", "message": "Not found"}},
                 status_code=404,
             )
 
