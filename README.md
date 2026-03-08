@@ -278,7 +278,7 @@ unifiedui-sdk/
 
 ## Branching Strategy
 
-This project follows a **Git Flow** branching model optimized for open-source SDK releases with semantic versioning.
+This project follows a **Simplified Flow** branching model with automatic versioning — optimized for SDK releases with semantic versioning.
 
 ```mermaid
 gitGraph
@@ -306,14 +306,8 @@ gitGraph
     checkout develop
     merge feat/streaming id: "merge streaming"
 
-    branch release/0.1.0
-    checkout release/0.1.0
-    commit id: "bump 0.1.0"
-    commit id: "fix docs"
     checkout main
-    merge release/0.1.0 id: "v0.1.0" tag: "v0.1.0"
-    checkout develop
-    merge release/0.1.0 id: "back-merge 0.1.0"
+    merge develop id: "v0.1.0" tag: "v0.1.0 (auto)"
 
     checkout develop
     branch feat/agents
@@ -322,58 +316,80 @@ gitGraph
     checkout develop
     merge feat/agents id: "merge agents"
 
-    branch fix/validation-error
-    checkout fix/validation-error
+    branch fix/validation
+    checkout fix/validation
     commit id: "fix validation"
     checkout develop
-    merge fix/validation-error id: "merge validation fix"
+    merge fix/validation id: "merge validation"
 
     checkout main
-    branch hotfix/0.1.1
-    checkout hotfix/0.1.1
+    merge develop id: "v0.1.1" tag: "v0.1.1 (auto)"
+
+    checkout main
+    branch hotfix/security
+    checkout hotfix/security
     commit id: "critical fix"
     checkout main
-    merge hotfix/0.1.1 id: "v0.1.1" tag: "v0.1.1"
+    merge hotfix/security id: "v0.1.2" tag: "v0.1.2 (auto)"
     checkout develop
-    merge hotfix/0.1.1 id: "back-merge hotfix"
+    merge hotfix/security id: "backport hotfix"
 
-    branch release/0.2.0
-    checkout release/0.2.0
-    commit id: "bump 0.2.0"
-    checkout main
-    merge release/0.2.0 id: "v0.2.0" tag: "v0.2.0"
     checkout develop
-    merge release/0.2.0 id: "back-merge 0.2.0"
+    commit id: "bump to 0.2.0"
+    checkout main
+    merge develop id: "v0.2.0" tag: "v0.2.0 (auto)"
 ```
+
+### Auto-Versioning
+
+Every merge to `main` triggers automatic versioning:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  pyproject.toml          PyPI Current        Next Version              │
+│  (version floor)                                                        │
+│  ────────────────────────────────────────────────────────────────────── │
+│  0.1.0                   (not published)  →  0.1.0                     │
+│  0.1.0                   0.1.0            →  0.1.1  (patch++)          │
+│  0.1.0                   0.1.5            →  0.1.6  (patch++)          │
+│  0.2.0                   0.1.6            →  0.2.0  (minor bump!)      │
+│  1.0.0                   0.9.9            →  1.0.0  (major bump!)      │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**To release a new minor/major version:** Update `version` in `pyproject.toml` on `develop`, then merge to `main`.
 
 ### Branch Types
 
 | Branch | Purpose | Branches from | Merges into |
 |--------|---------|---------------|-------------|
-| `main` | Stable releases only — every commit is a tagged version | — | — |
-| `develop` | Integration branch for the next release | `main` | `release/*` |
+| `main` | Production releases — every merge triggers PyPI deployment | — | — |
+| `develop` | Integration branch for features and fixes | `main` | `main` |
 | `feat/<name>` | New features or enhancements | `develop` | `develop` |
 | `fix/<name>` | Bug fixes (non-critical) | `develop` | `develop` |
-| `release/<version>` | Release preparation (version bump, changelog, final fixes) | `develop` | `main` + `develop` |
-| `hotfix/<version>` | Critical fixes on a released version | `main` | `main` + `develop` |
+| `hotfix/<name>` | Critical production fixes | `main` | `main` + `develop` |
 | `docs/<name>` | Documentation-only changes | `develop` | `develop` |
 | `refactor/<name>` | Code restructuring without behavior changes | `develop` | `develop` |
 
 ### Workflow
 
-1. **Feature development** — Create a `feat/` branch from `develop`. Open a PR back into `develop` when ready.
-2. **Release preparation** — When `develop` is ready for a release, create a `release/x.y.z` branch. Bump the version, update the changelog, and fix any last-minute issues on this branch.
-3. **Publishing** — Merge the release branch into `main` and tag it (`vx.y.z`). Back-merge into `develop`.
-4. **Hotfixes** — For critical bugs on a released version, create a `hotfix/` branch from `main`, fix, tag, and back-merge into both `main` and `develop`.
+1. **Feature/Fix development** — Create a `feat/` or `fix/` branch from `develop`. Open a PR back into `develop`.
+2. **Release** — When ready, open a PR from `develop` to `main`. On merge, CD automatically:
+   - Calculates next version (floor + PyPI patch increment)
+   - Creates git tag
+   - Publishes to PyPI
+   - Generates changelog and GitHub Release
+3. **Hotfixes** — For critical bugs, create a `hotfix/` branch from `main`, fix, and PR to `main`. Then backport to `develop`.
 
 ### Rules
 
 - **Never commit directly** to `main` or `develop` — always use PRs
 - **All PRs require** passing CI (tests, lint, type check, coverage ≥ 80%)
-- **Squash merge** feature branches into `develop` for a clean history
-- **Merge commits** for release/hotfix branches to preserve branch topology
-- **Tag format**: `v<major>.<minor>.<patch>` (e.g. `v0.1.0`)
-- **Branch naming**: `<type>/<short-description>` (e.g. `feat/langchain-tracing`)
+- **Squash merge** feature/fix branches into `develop` for a clean history
+- **Tag format**: `v<major>.<minor>.<patch>` (auto-generated)
+- **Branch naming**: `<type>/<short-description>` (e.g. `feat/langchain-tracing`, `fix/memory-leak`)
 
 ---
 

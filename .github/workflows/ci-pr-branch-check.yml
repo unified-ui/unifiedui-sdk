@@ -15,7 +15,7 @@ jobs:
       - name: Check branch naming convention
         run: |
           BRANCH="${{ github.head_ref }}"
-          PATTERN="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|hotfix|release|develop)/"
+          PATTERN="^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert|hotfix)/"
           
           # Allow special branches without prefix
           if [[ "$BRANCH" == "develop" || "$BRANCH" == "main" ]]; then
@@ -31,8 +31,7 @@ jobs:
             echo "   Types:"
             echo "     feat/     - New feature"
             echo "     fix/      - Bug fix"
-            echo "     hotfix/   - Urgent production fix"
-            echo "     release/  - Release preparation"
+            echo "     hotfix/   - Urgent production fix (direct to main)"
             echo "     docs/     - Documentation only"
             echo "     refactor/ - Code refactoring"
             echo "     test/     - Adding tests"
@@ -56,25 +55,33 @@ jobs:
           
           # Rules for PRs to main
           if [[ "$TARGET" == "main" ]]; then
-            # Allowed: develop, hotfix/*, release/*
-            if [[ "$SOURCE" == "develop" || "$SOURCE" =~ ^hotfix/ || "$SOURCE" =~ ^release/ ]]; then
+            # Allowed: develop, hotfix/*
+            if [[ "$SOURCE" == "develop" || "$SOURCE" =~ ^hotfix/ ]]; then
               echo "✅ PR to 'main' from '$SOURCE' is allowed."
+              echo ""
+              echo "   🚀 Auto-Versioning: On merge, CD will automatically:"
+              echo "      1. Calculate next version (floor from pyproject.toml + PyPI patch++)"
+              echo "      2. Create git tag (vX.Y.Z)"
+              echo "      3. Publish to PyPI"
+              echo "      4. Create GitHub Release with changelog"
               exit 0
             else
               echo "❌ PRs to 'main' are only allowed from:"
-              echo "   • develop"
-              echo "   • hotfix/*"
-              echo "   • release/*"
+              echo "   • develop (regular releases)"
+              echo "   • hotfix/* (emergency fixes)"
               echo ""
               echo "   Your branch: $SOURCE"
               echo ""
-              echo "   📖 Branching Strategy:"
-              echo "   ┌─────────────────────────────────────────────────────┐"
-              echo "   │  feat/* ──┐                                        │"
-              echo "   │  fix/*  ──┼──▶ develop ──▶ release/* ──▶ main     │"
-              echo "   │           │                    │                   │"
-              echo "   │           │              hotfix/* ─────────────▶   │"
-              echo "   └─────────────────────────────────────────────────────┘"
+              echo "   📖 Simplified Flow:"
+              echo "   ┌────────────────────────────────────────────────────────────┐"
+              echo "   │                                                            │"
+              echo "   │  feat/* ──┐                                                │"
+              echo "   │  fix/*  ──┼──▶ develop ──────────────▶ main ──▶ PyPI 📦   │"
+              echo "   │  docs/* ──┤        ▲                    │                  │"
+              echo "   │  ci/*   ──┘        │                    ▼                  │"
+              echo "   │                    └──── hotfix/* ─────▶│                  │"
+              echo "   │                                                            │"
+              echo "   └────────────────────────────────────────────────────────────┘"
               exit 1
             fi
           fi
@@ -85,8 +92,8 @@ jobs:
             if [[ "$SOURCE" =~ ^(feat|fix|docs|refactor|test|ci|chore|style|perf|build|revert)/ ]]; then
               echo "✅ PR to 'develop' from '$SOURCE' is allowed."
               exit 0
-            # Also allow merging back from release/* or hotfix/* (backports)
-            elif [[ "$SOURCE" =~ ^(release|hotfix)/ ]]; then
+            # Also allow merging back from hotfix/* (backports)
+            elif [[ "$SOURCE" =~ ^hotfix/ ]]; then
               echo "✅ PR to 'develop' from '$SOURCE' (backport) is allowed."
               exit 0
             else
@@ -98,7 +105,6 @@ jobs:
               echo "   • test/*"
               echo "   • ci/*"
               echo "   • chore/*"
-              echo "   • release/* (backport)"
               echo "   • hotfix/* (backport)"
               echo ""
               echo "   Your branch: $SOURCE"
