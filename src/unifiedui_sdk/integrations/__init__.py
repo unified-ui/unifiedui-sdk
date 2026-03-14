@@ -1,5 +1,6 @@
 """Integrations module — adapters for streaming LangChain/LangGraph via unified-ui SSE protocol."""
 
+from unifiedui_sdk.integrations.base import BaseStreamAdapter
 from unifiedui_sdk.integrations.langchain.adapter import LangchainStreamAdapter
 from unifiedui_sdk.integrations.langgraph.adapter import LanggraphStreamAdapter
 from unifiedui_sdk.integrations.models import (
@@ -10,6 +11,7 @@ from unifiedui_sdk.integrations.models import (
 )
 
 __all__ = [
+    "BaseStreamAdapter",
     "CreateConversationRequest",
     "CreateConversationResponse",
     "LangchainStreamAdapter",
