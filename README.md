@@ -22,7 +22,8 @@ The **unified-ui SDK** is a complementary Python package that provides capabilit
 | 🔍 **Tracing** | Standardized tracing objects; LangChain & LangGraph trace sniffing and forwarding |
 | 📡 **Streaming** | Standardized streaming response protocol for unified-ui |
 | 🤖 **Agents** | ReACT Agent class with an agent engine built on LangChain / LangGraph |
-| 🔧 **Tools** | Reusable tool clients (Microsoft 365 Graph API) for building AI agents |
+| � **Integrations** | LangChain & LangGraph stream adapters + REST API contract models for building external agents |
+| �🔧 **Tools** | Reusable tool clients (Microsoft 365 Graph API) for building AI agents |
 | 🧱 **Core** | Shared interfaces, base classes, and utility functions |
 
 ### How It Fits
@@ -235,7 +236,145 @@ client.messages.send(
 )
 ```
 
-> Detailed module documentation: [`tracing/`](src/unifiedui_sdk/tracing/README.md) · [`streaming/`](src/unifiedui_sdk/streaming/README.md) · [`agents/`](src/unifiedui_sdk/agents/README.md) · [`tools/`](src/unifiedui_sdk/tools/README.md) · [`core/`](src/unifiedui_sdk/core/README.md)
+> Detailed module documentation: [`tracing/`](src/unifiedui_sdk/tracing/README.md) · [`streaming/`](src/unifiedui_sdk/streaming/README.md) · [`agents/`](src/unifiedui_sdk/agents/README.md) · [`integrations/`](src/unifiedui_sdk/integrations/README.md) · [`tools/`](src/unifiedui_sdk/tools/README.md) · [`core/`](src/unifiedui_sdk/core/README.md)
+
+### Integrations — Build REST API Agents for unified-ui
+
+The **integrations** module provides everything you need to build a REST API agent service
+that integrates with unified-ui. It includes stream adapters for LangChain and LangGraph,
+plus Pydantic request/response models that define the contract between your agent and the platform.
+
+#### Stream Adapters
+
+Wrap your existing LangChain or LangGraph agents to stream responses in the unified-ui SSE protocol.
+Both adapters follow the same pattern: **build your agent, pass it to the adapter, stream it.**
+
+```python
+from langchain_openai import AzureChatOpenAI
+from langchain_core.tools import tool
+from langgraph.prebuilt import create_react_agent
+
+from unifiedui_sdk.integrations.langchain import LangchainStreamAdapter
+
+
+@tool
+def get_weather(city: str) -> str:
+    """Get the weather for a city."""
+    return f"{city}: 18°C, sunny"
+
+
+llm = AzureChatOpenAI(
+    azure_endpoint="https://your-resource.openai.azure.com/",
+    api_key="your-key",
+    azure_deployment="gpt-4.1",
+    api_version="2024-05-01-preview",
+)
+
+# Build your agent however you want
+agent = create_react_agent(llm, [get_weather])
+
+# Wrap it with the adapter — that's it
+adapter = LangchainStreamAdapter(agent=agent)
+
+# Use in a FastAPI SSE endpoint
+async for msg in adapter.stream("What is the weather in Berlin?"):
+    yield {"event": msg.type.value, "data": msg.model_dump_json()}
+```
+
+`LanggraphStreamAdapter` works the same way, but additionally filters internal LangGraph nodes (`__start__`, `__end__`):
+
+```python
+from unifiedui_sdk.integrations.langgraph import LanggraphStreamAdapter
+
+graph = create_react_agent(llm, [get_weather])
+adapter = LanggraphStreamAdapter(graph=graph)
+
+async for msg in adapter.stream("What is the weather in Berlin?"):
+    yield {"event": msg.type.value, "data": msg.model_dump_json()}
+```
+
+Both adapters inherit from `BaseStreamAdapter`, which provides the shared `astream_events` → `StreamMessage` mapping logic.
+
+#### REST API Contract Models
+
+Use the standard Pydantic models so unified-ui's Agent Service can call your endpoints:
+
+```python
+from unifiedui_sdk.integrations.models import (
+    CreateConversationRequest,
+    CreateConversationResponse,
+    RestApiAgentInvokeRequest,
+)
+```
+
+| Model | Usage |
+|-------|-------|
+| `RestApiAgentInvokeRequest` | Request body for your invoke endpoint — contains `conversation_id`, `unified_ui_conversation_id`, `message_history`, `config` |
+| `CreateConversationRequest` | Request body for conversation creation — contains `config` |
+| `CreateConversationResponse` | Response with `conversation_id` from your service |
+| `MessageHistoryEntry` | Individual chat message with `role` and `content` |
+
+#### Endpoint Design
+
+Your REST API agent must expose at minimum:
+
+| Endpoint | Method | Request Body | Response | Purpose |
+|----------|--------|-------------|----------|---------|
+| `/invoke` | POST | `RestApiAgentInvokeRequest` | SSE stream (`text/event-stream`) | Run the agent and stream the response |
+| `/conversations` | POST | `CreateConversationRequest` | `CreateConversationResponse` (JSON) | Create a session (optional, for stateful agents) |
+
+The invoke endpoint must return SSE events using the unified-ui streaming protocol:
+
+```
+event: STREAM_START
+data: {"type": "STREAM_START", "content": "", "config": {}}
+
+event: TEXT_STREAM
+data: {"type": "TEXT_STREAM", "content": "Hello ", "config": {}}
+
+event: TEXT_STREAM
+data: {"type": "TEXT_STREAM", "content": "world!", "config": {}}
+
+event: STREAM_END
+data: {"type": "STREAM_END", "content": "", "config": {}}
+```
+
+#### Full Example: FastAPI Agent Service
+
+```python
+from fastapi import FastAPI
+from sse_starlette.sse import EventSourceResponse
+
+from unifiedui_sdk.integrations.langchain import LangchainStreamAdapter
+from unifiedui_sdk.integrations.models import (
+    CreateConversationRequest,
+    CreateConversationResponse,
+    RestApiAgentInvokeRequest,
+)
+
+app = FastAPI()
+
+
+@app.post("/api/v1/conversations")
+async def create_conversation(
+    request: CreateConversationRequest,
+) -> CreateConversationResponse:
+    session_id = create_session()  # your session logic
+    return CreateConversationResponse(conversation_id=session_id)
+
+
+@app.post("/api/v1/invoke")
+async def invoke(request: RestApiAgentInvokeRequest) -> EventSourceResponse:
+    async def stream():
+        adapter = create_your_adapter()  # LangchainStreamAdapter or LanggraphStreamAdapter
+        user_msg = request.message_history[-1].content if request.message_history else ""
+        async for msg in adapter.stream(user_msg):
+            yield {"event": msg.type.value, "data": msg.model_dump_json()}
+
+    return EventSourceResponse(stream())
+```
+
+> See the full working example: [unified-ui Sample REST API Agent](https://github.com/unified-ui/unifiedui-sample-rest-api-agent)
 
 ---
 
@@ -297,6 +436,11 @@ unifiedui-sdk/
 │   │       ├── global_search/   # Cross-tenant search
 │   │       ├── outlook/         # Email & calendar
 │   │       └── sharepoint/      # Sites, drives, pages, lists, OneNote
+│   ├── integrations/            # External REST API agent integration
+│   │   ├── base.py              # BaseStreamAdapter (shared astream_events mapping)
+│   │   ├── models.py            # Contract models (RestApiAgentInvokeRequest, etc.)
+│   │   ├── langchain/           # LangchainStreamAdapter
+│   │   └── langgraph/           # LanggraphStreamAdapter
 │   └── agents/                  # ReACT Agent Engine
 │       ├── config.py            # ReActAgentConfig, MultiAgentConfig, ToolConfig
 │       ├── engine.py            # ReActAgentEngine (single + multi-agent)
