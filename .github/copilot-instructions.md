@@ -40,6 +40,7 @@ Refer to the following files for domain-specific guidance:
 | [project-structure.md](instructions/project-structure.md) | Package layout and module organization |
 | [coding-standards.md](instructions/coding-standards.md) | Code style, type hints, docstrings, naming conventions |
 | [testing-guide.md](instructions/testing-guide.md) | Testing patterns, coverage requirements, fixtures |
+| [security.md](instructions/security.md) | **ALWAYS read** — Input validation, SSRF, secrets, prompt injection |
 
 ## Conventions
 
@@ -47,5 +48,5 @@ Refer to the following files for domain-specific guidance:
 - **Branch names**: `<type>/<description>` (e.g. `feat/langchain-tracing`)
 - **Imports**: sorted by ruff/isort; `unifiedui_sdk` is first-party
 - **Docstrings**: Google style
-- **Type hints**: required on all public APIs; `py.typed` marker present
+- **Type hints**: required on ALL function signatures (every parameter and return type, public, private, nested); `py.typed` marker present; run `uv run mypy src/` — zero errors required
 - **Coverage**: minimum 80%
