@@ -78,17 +78,13 @@ class TestLangchainStreamAdapter:
     """Tests for LangchainStreamAdapter."""
 
     @pytest.mark.asyncio
-    async def test_stream_produces_correct_event_sequence(
-        self, sample_events: list[dict[str, Any]]
-    ) -> None:
+    async def test_stream_produces_correct_event_sequence(self, sample_events: list[dict[str, Any]]) -> None:
         mock_llm = MagicMock()
         mock_tool = MagicMock()
         mock_tool.name = "get_weather"
 
         mock_graph = MagicMock()
-        mock_graph.astream_events = lambda *args, **kwargs: _mock_astream_events(
-            sample_events
-        )
+        mock_graph.astream_events = lambda *args, **kwargs: _mock_astream_events(sample_events)
 
         _mock_langchain_agents.create_agent = MagicMock(return_value=mock_graph)
         with patch.dict(sys.modules, {"langchain": _mock_langchain, "langchain.agents": _mock_langchain_agents}):
@@ -111,14 +107,10 @@ class TestLangchainStreamAdapter:
         assert StreamMessageType.STREAM_END in types
 
     @pytest.mark.asyncio
-    async def test_stream_tool_call_has_correct_data(
-        self, sample_events: list[dict[str, Any]]
-    ) -> None:
+    async def test_stream_tool_call_has_correct_data(self, sample_events: list[dict[str, Any]]) -> None:
         mock_llm = MagicMock()
         mock_graph = MagicMock()
-        mock_graph.astream_events = lambda *args, **kwargs: _mock_astream_events(
-            sample_events
-        )
+        mock_graph.astream_events = lambda *args, **kwargs: _mock_astream_events(sample_events)
 
         _mock_langchain_agents.create_agent = MagicMock(return_value=mock_graph)
         with patch.dict(sys.modules, {"langchain": _mock_langchain, "langchain.agents": _mock_langchain_agents}):
@@ -129,29 +121,21 @@ class TestLangchainStreamAdapter:
             async for msg in adapter.stream("test"):
                 messages.append(msg)
 
-        tool_start_msgs = [
-            m for m in messages if m.type == StreamMessageType.TOOL_CALL_START
-        ]
+        tool_start_msgs = [m for m in messages if m.type == StreamMessageType.TOOL_CALL_START]
         assert len(tool_start_msgs) == 1
         assert tool_start_msgs[0].config["tool_name"] == "get_weather"
         assert tool_start_msgs[0].config["tool_arguments"] == {"city": "Berlin"}
 
-        tool_end_msgs = [
-            m for m in messages if m.type == StreamMessageType.TOOL_CALL_END
-        ]
+        tool_end_msgs = [m for m in messages if m.type == StreamMessageType.TOOL_CALL_END]
         assert len(tool_end_msgs) == 1
         assert tool_end_msgs[0].config["tool_result"] == "Sunny, 20°C"
         assert tool_end_msgs[0].config["tool_status"] == "success"
 
     @pytest.mark.asyncio
-    async def test_stream_text_content(
-        self, sample_events: list[dict[str, Any]]
-    ) -> None:
+    async def test_stream_text_content(self, sample_events: list[dict[str, Any]]) -> None:
         mock_llm = MagicMock()
         mock_graph = MagicMock()
-        mock_graph.astream_events = lambda *args, **kwargs: _mock_astream_events(
-            sample_events
-        )
+        mock_graph.astream_events = lambda *args, **kwargs: _mock_astream_events(sample_events)
 
         _mock_langchain_agents.create_agent = MagicMock(return_value=mock_graph)
         with patch.dict(sys.modules, {"langchain": _mock_langchain, "langchain.agents": _mock_langchain_agents}):
@@ -175,13 +159,9 @@ class TestLanggraphStreamAdapter:
     """Tests for LanggraphStreamAdapter."""
 
     @pytest.mark.asyncio
-    async def test_stream_produces_correct_event_sequence(
-        self, sample_events: list[dict[str, Any]]
-    ) -> None:
+    async def test_stream_produces_correct_event_sequence(self, sample_events: list[dict[str, Any]]) -> None:
         mock_graph = MagicMock()
-        mock_graph.astream_events = lambda *args, **kwargs: _mock_astream_events(
-            sample_events
-        )
+        mock_graph.astream_events = lambda *args, **kwargs: _mock_astream_events(sample_events)
 
         adapter = LanggraphStreamAdapter(graph=mock_graph)
 
@@ -221,9 +201,7 @@ class TestLanggraphStreamAdapter:
         ]
 
         mock_graph = MagicMock()
-        mock_graph.astream_events = lambda *args, **kwargs: _mock_astream_events(
-            events
-        )
+        mock_graph.astream_events = lambda *args, **kwargs: _mock_astream_events(events)
 
         adapter = LanggraphStreamAdapter(graph=mock_graph)
 
@@ -254,9 +232,7 @@ class TestLanggraphStreamAdapter:
         ]
 
         mock_graph = MagicMock()
-        mock_graph.astream_events = lambda *args, **kwargs: _mock_astream_events(
-            events
-        )
+        mock_graph.astream_events = lambda *args, **kwargs: _mock_astream_events(events)
 
         adapter = LanggraphStreamAdapter(graph=mock_graph)
 
@@ -264,9 +240,7 @@ class TestLanggraphStreamAdapter:
         async for msg in adapter.stream("test"):
             messages.append(msg)
 
-        tool_end_msgs = [
-            m for m in messages if m.type == StreamMessageType.TOOL_CALL_END
-        ]
+        tool_end_msgs = [m for m in messages if m.type == StreamMessageType.TOOL_CALL_END]
         assert len(tool_end_msgs) == 1
         assert tool_end_msgs[0].config["tool_status"] == "error"
         assert tool_end_msgs[0].config["tool_error"] == "Connection failed"
