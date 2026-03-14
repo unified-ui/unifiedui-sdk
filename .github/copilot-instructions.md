@@ -40,6 +40,7 @@ Refer to the following files for domain-specific guidance:
 | [project-structure.md](instructions/project-structure.md) | Package layout and module organization |
 | [coding-standards.md](instructions/coding-standards.md) | Code style, type hints, docstrings, naming conventions |
 | [testing-guide.md](instructions/testing-guide.md) | Testing patterns, coverage requirements, fixtures |
+| [security.md](instructions/security.md) | **ALWAYS read** — Input validation, SSRF, secrets, prompt injection |
 
 ## Conventions
 
