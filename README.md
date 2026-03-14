@@ -295,6 +295,8 @@ async for msg in adapter.stream("What is the weather in Berlin?"):
 
 Both adapters inherit from `BaseStreamAdapter`, which provides the shared `astream_events` → `StreamMessage` mapping logic.
 
+> **Note:** `LangchainStreamAdapter` accepts **any** LangChain-compatible runnable that supports `astream_events` — not just agents built with `create_react_agent`. This includes `AgentExecutor`, `RunnableSequence`, `RunnableWithMessageHistory`, or any custom `Runnable`. Use `LanggraphStreamAdapter` only when you need to filter LangGraph-internal nodes (`__start__`, `__end__`).
+
 #### REST API Contract Models
 
 Use the standard Pydantic models so unified-ui's Agent Service can call your endpoints:
