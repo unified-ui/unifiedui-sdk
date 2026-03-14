@@ -64,7 +64,7 @@ class LangchainStreamAdapter:
         message_history: list[BaseMessage] | None = None,
         *,
         config: dict[str, Any] | None = None,
-    ) -> AsyncGenerator[StreamMessage, None]:
+    ) -> AsyncGenerator[StreamMessage]:
         """Stream agent execution as unified-ui StreamMessage objects.
 
         Args:
@@ -76,7 +76,7 @@ class LangchainStreamAdapter:
             StreamMessage objects for the unified-ui SSE protocol.
         """
         from langchain.agents import create_agent
-        from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+        from langchain_core.messages import HumanMessage, SystemMessage
 
         writer = StreamWriter()
         callbacks: list[Any] = []
@@ -111,7 +111,7 @@ class LangchainStreamAdapter:
         messages: list[BaseMessage],
         *,
         config: dict[str, Any] | None = None,
-    ) -> AsyncGenerator[StreamMessage, None]:
+    ) -> AsyncGenerator[StreamMessage]:
         """Stream agent execution from a pre-built message list.
 
         Args:
@@ -149,7 +149,7 @@ async def _stream_events(
     messages: list[Any],
     writer: StreamWriter,
     callbacks: list[Any],
-) -> AsyncGenerator[StreamMessage, None]:
+) -> AsyncGenerator[StreamMessage]:
     """Map LangChain astream_events to unified-ui StreamMessage objects.
 
     Args:
