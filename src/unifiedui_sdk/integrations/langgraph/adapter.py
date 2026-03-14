@@ -59,7 +59,7 @@ class LanggraphStreamAdapter:
         message_history: list[BaseMessage] | None = None,
         *,
         config: dict[str, Any] | None = None,
-    ) -> AsyncGenerator[StreamMessage, None]:
+    ) -> AsyncGenerator[StreamMessage]:
         """Stream graph execution as unified-ui StreamMessage objects.
 
         Args:

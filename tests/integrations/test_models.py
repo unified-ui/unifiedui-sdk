@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError
 
 from unifiedui_sdk.integrations.models import (
     CreateConversationRequest,
@@ -104,7 +105,7 @@ class TestRestApiAgentInvokeRequest:
         assert restored == req
 
     def test_missing_required_field_raises(self) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             RestApiAgentInvokeRequest()  # type: ignore[call-arg]
 
 
@@ -128,7 +129,7 @@ class TestCreateConversationResponse:
         assert resp.conversation_id == "session-xyz"
 
     def test_missing_conversation_id_raises(self) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             CreateConversationResponse()  # type: ignore[call-arg]
 
     def test_json_roundtrip(self) -> None:
