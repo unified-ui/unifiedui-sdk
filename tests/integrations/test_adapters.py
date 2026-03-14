@@ -2,20 +2,14 @@
 
 from __future__ import annotations
 
-import sys
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
+from unifiedui_sdk.integrations.langchain.adapter import LangchainStreamAdapter
 from unifiedui_sdk.integrations.langgraph.adapter import LanggraphStreamAdapter
 from unifiedui_sdk.streaming.models import StreamMessageType
-
-# Create a mock 'langchain' and 'langchain.agents' module so the deferred
-# import inside the adapter resolves without installing the full package.
-_mock_langchain_agents = MagicMock()
-_mock_langchain = MagicMock()
-_mock_langchain.agents = _mock_langchain_agents
 
 
 async def _mock_astream_events(
@@ -79,21 +73,13 @@ class TestLangchainStreamAdapter:
 
     @pytest.mark.asyncio
     async def test_stream_produces_correct_event_sequence(self, sample_events: list[dict[str, Any]]) -> None:
-        mock_llm = MagicMock()
-        mock_tool = MagicMock()
-        mock_tool.name = "get_weather"
+        mock_agent = MagicMock()
+        mock_agent.astream_events = lambda *args, **kwargs: _mock_astream_events(sample_events)
 
-        mock_graph = MagicMock()
-        mock_graph.astream_events = lambda *args, **kwargs: _mock_astream_events(sample_events)
-
-        _mock_langchain_agents.create_agent = MagicMock(return_value=mock_graph)
-        with patch.dict(sys.modules, {"langchain": _mock_langchain, "langchain.agents": _mock_langchain_agents}):
-            from unifiedui_sdk.integrations.langchain.adapter import LangchainStreamAdapter
-
-            adapter = LangchainStreamAdapter(llm=mock_llm, tools=[mock_tool])
-            messages: list[Any] = []
-            async for msg in adapter.stream("What's the weather?"):
-                messages.append(msg)
+        adapter = LangchainStreamAdapter(agent=mock_agent)
+        messages: list[Any] = []
+        async for msg in adapter.stream("What's the weather?"):
+            messages.append(msg)
 
         types = [m.type for m in messages]
 
@@ -108,18 +94,13 @@ class TestLangchainStreamAdapter:
 
     @pytest.mark.asyncio
     async def test_stream_tool_call_has_correct_data(self, sample_events: list[dict[str, Any]]) -> None:
-        mock_llm = MagicMock()
-        mock_graph = MagicMock()
-        mock_graph.astream_events = lambda *args, **kwargs: _mock_astream_events(sample_events)
+        mock_agent = MagicMock()
+        mock_agent.astream_events = lambda *args, **kwargs: _mock_astream_events(sample_events)
 
-        _mock_langchain_agents.create_agent = MagicMock(return_value=mock_graph)
-        with patch.dict(sys.modules, {"langchain": _mock_langchain, "langchain.agents": _mock_langchain_agents}):
-            from unifiedui_sdk.integrations.langchain.adapter import LangchainStreamAdapter
-
-            adapter = LangchainStreamAdapter(llm=mock_llm, tools=[])
-            messages: list[Any] = []
-            async for msg in adapter.stream("test"):
-                messages.append(msg)
+        adapter = LangchainStreamAdapter(agent=mock_agent)
+        messages: list[Any] = []
+        async for msg in adapter.stream("test"):
+            messages.append(msg)
 
         tool_start_msgs = [m for m in messages if m.type == StreamMessageType.TOOL_CALL_START]
         assert len(tool_start_msgs) == 1
@@ -133,21 +114,13 @@ class TestLangchainStreamAdapter:
 
     @pytest.mark.asyncio
     async def test_stream_text_content(self, sample_events: list[dict[str, Any]]) -> None:
-        mock_llm = MagicMock()
-        mock_graph = MagicMock()
-        mock_graph.astream_events = lambda *args, **kwargs: _mock_astream_events(sample_events)
+        mock_agent = MagicMock()
+        mock_agent.astream_events = lambda *args, **kwargs: _mock_astream_events(sample_events)
 
-        _mock_langchain_agents.create_agent = MagicMock(return_value=mock_graph)
-        with patch.dict(sys.modules, {"langchain": _mock_langchain, "langchain.agents": _mock_langchain_agents}):
-            from unifiedui_sdk.integrations.langchain.adapter import LangchainStreamAdapter
-
-            adapter = LangchainStreamAdapter(llm=mock_llm, tools=[])
-            messages: list[Any] = []
-            async for msg in adapter.stream("test"):
-                messages.append(msg)
-            messages: list[Any] = []
-            async for msg in adapter.stream("test"):
-                messages.append(msg)
+        adapter = LangchainStreamAdapter(agent=mock_agent)
+        messages: list[Any] = []
+        async for msg in adapter.stream("test"):
+            messages.append(msg)
 
         text_msgs = [m for m in messages if m.type == StreamMessageType.TEXT_STREAM]
         assert len(text_msgs) == 2
