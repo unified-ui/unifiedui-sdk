@@ -60,7 +60,7 @@ class TestClientConfigAuthHeaders:
     def test_api_key_only(self) -> None:
         config = ClientConfig(base_url="https://api.example.com", tenant_id="t-1", api_key="my-key")
         headers = config.auth_headers
-        assert headers == {"X-Unified-UI-Autonomous-Agent-API-Key": "my-key"}
+        assert headers == {"X-Unified-UI-Workflow-API-Key": "my-key"}
 
     def test_both_auth_methods(self) -> None:
         config = ClientConfig(
@@ -71,7 +71,7 @@ class TestClientConfigAuthHeaders:
         )
         headers = config.auth_headers
         assert headers["Authorization"] == "Bearer tok"
-        assert headers["X-Unified-UI-Autonomous-Agent-API-Key"] == "key"
+        assert headers["X-Unified-UI-Workflow-API-Key"] == "key"
 
 
 class TestClientConfigBuildUrl:
