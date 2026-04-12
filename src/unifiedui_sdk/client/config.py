@@ -54,7 +54,7 @@ class ClientConfig:
         if self.bearer_token:
             headers["Authorization"] = f"Bearer {self.bearer_token}"
         if self.api_key:
-            headers["X-Unified-UI-Autonomous-Agent-API-Key"] = self.api_key
+            headers["X-Unified-UI-Workflow-API-Key"] = self.api_key
         return headers
 
     def build_url(self, path: str) -> str:
